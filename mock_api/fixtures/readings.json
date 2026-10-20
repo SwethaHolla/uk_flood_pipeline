@@ -1,0 +1,46 @@
+{
+  "@context": "http://environment.data.gov.uk/flood-monitoring/meta.jsonld",
+  "meta": {
+    "version": "0.9",
+    "comment": "Status: Beta service",
+    "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "items": [
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/measures/1029TH-level-15-min/readings/2026-10-20T09:00:00Z",
+      "measure": "http://environment.data.gov.uk/flood-monitoring/id/measures/1029TH-level-15-min",
+      "dateTime": "2026-10-20T09:00:00Z",
+      "value": 0.842
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/measures/1029TH-flow-rate/readings/2026-10-20T09:00:00Z",
+      "measure": "http://environment.data.gov.uk/flood-monitoring/id/measures/1029TH-flow-rate",
+      "dateTime": "2026-10-20T09:00:00Z",
+      "value": 33.1,
+      "qualifier": "1"
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/measures/3421TH-level-15-min/readings/2026-10-20T09:00:00Z",
+      "measure": "http://environment.data.gov.uk/flood-monitoring/id/measures/3421TH-level-15-min",
+      "dateTime": "2026-10-20T09:00:00Z",
+      "value": 1.201
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/measures/1106TD-rainfall-tipping-bucket-raingauge/readings/2026-10-20T09:00:00Z",
+      "measure": "http://environment.data.gov.uk/flood-monitoring/id/measures/1106TD-rainfall-tipping-bucket-raingauge",
+      "dateTime": "2026-10-20T09:00:00Z",
+      "value": [0.0, 0.0]
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/measures/9999XX-level-missing-value/readings/2026-10-20T09:00:00Z",
+      "measure": "http://environment.data.gov.uk/flood-monitoring/id/measures/9999XX-level-missing-value",
+      "dateTime": "2026-10-20T09:00:00Z"
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/measures/2201TH-level-15-min/readings/2026-10-20T09:00:00Z",
+      "measure": "http://environment.data.gov.uk/flood-monitoring/id/measures/2201TH-level-15-min",
+      "dateTime": "2026-10-20T09:00:00Z",
+      "value": 0.512
+    }
+  ]
+}
