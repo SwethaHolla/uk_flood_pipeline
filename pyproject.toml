@@ -20,7 +20,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/uk_flood"]
+packages = ["src/uk_flood", "mock_api"]
 
 [tool.ruff]
 line-length = 100
@@ -48,7 +48,9 @@ source = ["src"]
 
 [dependency-groups]
 dev = [
-    "dbt-bigquery>=1.8",
+    "dbt-bigquery>=1.8,<1.10",
+    "dbt-core>=1.9,<1.10",
+    "dbt-duckdb>=1.8,<1.10",
     "elementary-data[bigquery]>=0.13",
     "pre-commit>=3",
     "pytest>=8",

@@ -1,0 +1,78 @@
+version: 2
+
+models:
+  - name: dim_station
+    description: One row per EA monitoring station.
+    columns:
+      - name: station_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_measure
+    description: One row per measure; station_id derived via the bridge.
+    columns:
+      - name: measure_id
+        tests:
+          - unique
+          - not_null
+      - name: station_id
+        tests:
+          - relationships:
+              to: ref('dim_station')
+              field: station_id
+              config:
+                severity: warn  # 15 stations have no measures; some measures may float
+
+  - name: dim_flood_area
+    description: Distinct flood areas seen in warnings.
+    columns:
+      - name: flood_area_id
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_readings
+    description: >
+      Incremental reading fact. Partitioned by reading_date and clustered by
+      measure_id on BigQuery.
+    columns:
+      - name: measure_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_measure')
+              field: measure_id
+      - name: reading_time
+        tests:
+          - not_null
+      - name: reading_value
+        description: Null when the API reported NaN (value_missing = true).
+        tests:
+          - elementary.column_anomalies:
+              timestamp_column: reading_time
+              column_anomalies:
+                - null_rate
+                - max
+                - min
+              config:
+                tags: ['elementary']
+                enabled: "{{ target.type == 'bigquery' }}"
+    tests:
+      - elementary.table_anomalies:
+          timestamp_column: reading_time
+          config:
+            tags: ['elementary']
+            enabled: "{{ target.type == 'bigquery' }}"
+
+  - name: fct_flood_warnings
+    description: Flood warnings enriched with their flood area.
+    columns:
+      - name: warning_id
+        tests:
+          - unique
+          - not_null
+      - name: severity_level
+        tests:
+          - accepted_values:
+              values: [1, 2, 3, 4]

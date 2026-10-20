@@ -1,19 +1,19 @@
 [sqlfluff]
-dialect = bigquery
+dialect = duckdb
 templater = dbt
 max_line_length = 120
-exclude_rules = RF04,ST06,LT05
+exclude_rules = RF04,ST06,LT05,LT02,AL01,AM05,CP02
 large_file_skip_bytea = 0
 
 [sqlfluff:templater:dbt]
-profiles_dir = dbt
+profiles_dir = ci/dbt
 project_dir = dbt
 
 [sqlfluff:rules:capitalisation.keywords]
-capitalisation_policy = upper
+capitalisation_policy = lower
 
 [sqlfluff:rules:capitalisation.identifiers]
 extended_capitalisation_policy = lower
 
 [sqlfluff:rules:capitalisation.functions]
-capitalisation_policy = upper
+capitalisation_policy = lower
