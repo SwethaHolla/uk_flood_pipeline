@@ -1,0 +1,35 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Raw tables owned by the dlt ingestion layer (dataset uk_flood_raw).
+      Loaded via `make ingest` (live API) or `make ingest-local` (mock API +
+      duckdb).
+    database: "{{ env_var('DBT_SOURCE_DATABASE', env_var('GCP_PROJECT_ID', 'ukfloodpipeline')) }}"
+    schema: "{{ env_var('BQ_RAW_DATASET', 'uk_flood_raw') }}"
+    tables:
+      - name: stations
+        description: "EA monitoring stations (one row per @id)."
+      - name: stations__measures
+        description: >
+          dlt-normalised child table: one row per station/measure URI pair
+          (stations.measures is an array; dlt unnests it on load).
+      - name: measures
+        description: "Measures attached to stations (level/flow/rainfall)."
+      - name: flood_warnings
+        description: "Current flood warnings only (rolling window from the API)."
+      - name: readings
+        description: "Reading history (latest dual-write plus the seed script)."
+      - name: readings_latest
+        description: >
+          Rolling snapshot (each measure's newest reading). Doubles as the
+          ingestion-health freshness source: dbt freshness checks max(datetime).
+        loaded_at_field: datetime
+        freshness:
+          warn_after: {count: 1, period: hour}
+          error_after: {count: 4, period: hour}
+      - name: quarantine
+        description: "Contract failures with raw payload and error reason."
+      - name: run_metadata
+        description: "One row per resource per ingestion run (observability)."

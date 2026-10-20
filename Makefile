@@ -31,20 +31,27 @@ logs: ## Tail Airflow logs
 ingest: ## Run one ingestion cycle against the EA API (needs BigQuery)
 	$(PYTHON) -m uk_flood.ingest run
 
-seed-history: ## Seed ~4 weeks of readings history via ?date= loops (needs BigQuery)
+ingest-local: ## Ingest the mock API into data/uk_flood.duckdb (offline)
+	$(PYTHON) scripts/ingest_local.py
+
+seed-history: ## Seed ~4 weeks of readings history via per-measure pulls (needs BigQuery)
 	$(PYTHON) scripts/seed_history.py
 
 dbt-deps: ## Install dbt packages
-	cd dbt && $(UV) run dbt deps
+	$(UV) run dbt deps --profiles-dir dbt --project-dir dbt
 
-dbt-build: ## Run the full dbt build (models + tests) (needs BigQuery)
-	cd dbt && $(UV) run dbt build --profiles-dir . --project-dir .
+dbt-build: ## Run the full dbt build (models + tests) against BigQuery
+	$(UV) run dbt build --profiles-dir dbt --project-dir dbt
+
+dbt-build-local: ## Run the full dbt build against the local duckdb warehouse
+	DUCKDB_PATH=data/uk_flood.duckdb DBT_SOURCE_DATABASE=uk_flood \
+		$(UV) run dbt build --profiles-dir dbt --project-dir dbt --target local
 
 dbt-test: ## Run dbt tests only
-	cd dbt && $(UV) run dbt test --profiles-dir . --project-dir .
+	$(UV) run dbt test --profiles-dir dbt --project-dir dbt
 
 elementary-report: ## Generate the Elementary HTML report
-	cd dbt && $(UV) run elementary generate-report --profiles-dir . --project-dir .
+	$(UV) run elementary generate-report --profiles-dir dbt --project-dir dbt
 
 test: ## Run the offline test suite (no cloud credentials required)
 	$(UV) run pytest -m "not integration"

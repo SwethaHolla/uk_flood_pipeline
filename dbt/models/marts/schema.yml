@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: mart_station_reliability
+    description: Reading completeness and freshness per station (7-day window).
+    columns:
+      - name: station_id
+        tests:
+          - unique
+          - not_null
+      - name: freshness_status
+        tests:
+          - accepted_values:
+              values: ['no_data', 'fresh', 'stale', 'offline']
+    tests:
+      # Elementary anomaly monitors — run via `dbt test -s tag:elementary`
+      # (see docs/runbook.md); parsed in CI, executed against BigQuery.
+      - elementary.table_anomalies:
+          timestamp_column: last_reading_at
+          config:
+            tags: ['elementary']
+            enabled: "{{ target.type == 'bigquery' }}"
+
+  - name: mart_river_level_trends
+    description: Hourly river-level aggregates per station (28-day window).
+
+  - name: mart_rainfall_trends
+    description: Hourly rainfall aggregates per station (28-day window).
+
+  - name: mart_flood_warning_history
+    description: Flood warnings with severity labels and hours-since-raised.

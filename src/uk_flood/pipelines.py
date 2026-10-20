@@ -14,6 +14,7 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -140,6 +141,7 @@ def make_pipeline(
             kwargs["credentials"] = settings.google_application_credentials
         dest = dlt.destinations.bigquery(**kwargs)
     elif destination == "duckdb":
+        Path(duckdb_path).parent.mkdir(parents=True, exist_ok=True)
         dest = dlt.destinations.duckdb(duckdb_path)
     else:
         raise ValueError(f"Unsupported destination: {destination}")
@@ -254,6 +256,18 @@ def run_ingestion(
                             primary_key=spec["primary_keys"],
                         )
                     )
+                    if name == "readings_latest":
+                        # Dual-write: the rolling ?latest snapshot also feeds the
+                        # `readings` history table (merge on measure+datetime),
+                        # so fct_readings accumulates without the seed script.
+                        load_resources.append(
+                            dlt.resource(
+                                valid,
+                                name="readings",
+                                write_disposition="merge",
+                                primary_key=READING_HISTORY_SPEC["primary_keys"],
+                            )
+                        )
                 result.rows_loaded = len(valid)
                 result.rows_quarantined = len(quarantined)
                 result.schema_hash = schema_fingerprint(spec["contract"])

@@ -24,16 +24,15 @@ models:
     core:
       +schema: core
       +tags: ["core"]
-      fct_readings:
-        +materialized: incremental
-        +incremental_strategy: merge
-        +partition_by:
-          field: reading_date
-          data_type: date
-        +cluster_by: ["measure_id"]
     marts:
       +schema: marts
       +tags: ["marts"]
+  # Elementary targets BigQuery only (its anomaly models use warehouse
+  # functions DuckDB lacks); local duckdb builds skip it entirely.
+  elementary:
+    +enabled: "{{ target.type == 'bigquery' }}"
 
-flags:
-  require_cast_to_ts_in_incremental_strategy: true
+vars:
+  # How far back the reliability mart looks
+  reliability_window_days: 7
+  trend_window_days: 28

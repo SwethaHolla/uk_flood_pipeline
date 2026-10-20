@@ -1,13 +1,11 @@
-# Dummy profile for CI: `dbt parse` and sqlfluff's dbt templater compile the
-# project without ever contacting a warehouse, so credentials are irrelevant.
+# Offline profile for sqlfluff's dbt templater and `dbt parse` in CI.
+# The templater must connect to build its relation cache, so we point it at a
+# throwaway local DuckDB (no network, no credentials) instead of BigQuery.
 uk_flood:
   target: ci
   outputs:
     ci:
-      type: bigquery
-      method: oauth
-      project: "{{ env_var('GCP_PROJECT_ID', 'ci-dummy') }}"
-      dataset: "{{ env_var('BQ_DBT_SCHEMA', 'ci_dummy') }}"
-      location: US
+      type: duckdb
+      schema: main
+      path: ":memory:"
       threads: 2
-      maximum_bytes_billed: 10737418240

@@ -1,0 +1,77 @@
+version: 2
+
+models:
+  - name: stg_stations
+    description: Typed, renamed EA stations; dirty categoricals cleaned.
+    columns:
+      - name: station_id
+        tests:
+          - unique
+          - not_null
+      - name: station_reference
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: lat
+        description: Lists coerced to their first element in the contract (quirk 3).
+
+  - name: stg_station_measures
+    description: Bridge exploding stations.measure_uris (quirk 5).
+    columns:
+      - name: station_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_stations')
+              field: station_id
+      - name: measure_uri
+        tests:
+          - not_null
+
+  - name: stg_measures
+    description: Typed EA measures with flattened latestReading.
+    columns:
+      - name: measure_id
+        tests:
+          - unique
+          - not_null
+      - name: unit_name
+        description: Cleaned ('---', '', 'None' -> null); raw stays in the raw layer.
+        tests:
+          - accepted_values:
+              values: ['m', 'Cumecs', 'mm', '°C', 'm³/s', 'l/s', 'nt', 'knots']
+              config:
+                severity: warn  # the API invents units; warn rather than fail
+
+  - name: stg_readings
+    description: Reading history normalised to (measure_id, reading_time, reading_value).
+    columns:
+      - name: reading_id
+        tests:
+          - unique
+          - not_null
+      - name: measure_id
+        tests:
+          - not_null
+      - name: reading_time
+        tests:
+          - not_null
+
+  - name: stg_readings_latest
+    description: Rolling snapshot of each measure's newest reading.
+
+  - name: stg_flood_warnings
+    description: Current flood warnings; naive timestamps promoted to UTC.
+    columns:
+      - name: warning_id
+        tests:
+          - unique
+          - not_null
+      - name: severity_level
+        tests:
+          - accepted_values:
+              values: [1, 2, 3, 4]
+      - name: time_raised
+        tests:
+          - not_null
