@@ -1,0 +1,34 @@
+{
+  "@context": "http://environment.data.gov.uk/flood-monitoring/meta.jsonld",
+  "meta": {
+    "version": "0.9",
+    "comment": "Status: Beta service",
+    "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+  },
+  "items": [
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/floods/124963",
+      "severity": "Warning - Severe Flood Warning",
+      "severityLevel": 4,
+      "timeRaised": "2026-10-19T16:34:06",
+      "situation": "River levels in the Kingston upon Thames area remain high. Property flooding is expected.",
+      "floodArea": {
+        "@id": "http://environment.data.gov.uk/flood-monitoring/id/flood-area/124963",
+        "label": "Kingston upon Thames, Thames at Kingston",
+        "description": "Areas at risk: Thames Street, Fairfield Road and surrounding properties."
+      }
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/floods/124999",
+      "severity": "Warning - Flood Warning",
+      "severityLevel": 3,
+      "timeRaised": "2026-10-20T07:05:44",
+      "situation": "River levels are rising at the Datchet gauge.",
+      "floodArea": {
+        "@id": "http://environment.data.gov.uk/flood-monitoring/id/flood-area/124999",
+        "label": "Datchet, Old Windsor Lock",
+        "description": "Areas at risk: Horton Road and Datchet Common."
+      }
+    }
+  ]
+}

@@ -77,6 +77,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: origin
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
       - name: Clone into a clean directory and run the offline gate
         run: |
           git clone "$GITHUB_WORKSPACE/origin" fresh-clone

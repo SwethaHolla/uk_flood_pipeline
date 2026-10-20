@@ -1,0 +1,108 @@
+{
+  "@context": "http://environment.data.gov.uk/flood-monitoring/meta.jsonld",
+  "meta": {
+    "version": "0.9",
+    "comment": "Status: Beta service",
+    "licence": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+    "hasFormat": "http://environment.data.gov.uk/flood-monitoring/id/stations.json"
+  },
+  "items": [
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/stations/1029TH",
+      "stationReference": "1029TH",
+      "label": "Kingston upon Thames River Thames",
+      "town": "Kingston upon Thames",
+      "riverName": "River Thames",
+      "catchmentName": "Thames Valley from Cookham to Teddington",
+      "RLOIid": "2034",
+      "status": "Active",
+      "lat": 51.4105,
+      "long": -0.3113,
+      "easting": 518890,
+      "northing": 169000,
+      "dateOpened": "1970-01-01",
+      "measures": [
+        "http://environment.data.gov.uk/flood-monitoring/id/measures/1029TH-level-15-min",
+        "http://environment.data.gov.uk/flood-monitoring/id/measures/1029TH-flow-rate"
+      ]
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/stations/3421TH",
+      "stationReference": "3421TH",
+      "label": "Datchet River Thames",
+      "town": "Datchet",
+      "riverName": "River Thames",
+      "catchmentName": "Thames Valley from Cookham to Teddington",
+      "RLOIid": "2035",
+      "status": "Active",
+      "lat": [51.4801],
+      "long": -0.5862,
+      "easting": [498230.0],
+      "northing": [174400],
+      "dateOpened": "1974-04-01",
+      "measures": [
+        "http://environment.data.gov.uk/flood-monitoring/id/measures/3421TH-level-15-min"
+      ]
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/stations/5301TH",
+      "stationReference": "5301TH",
+      "label": "Eton Flood Warning Area",
+      "town": null,
+      "riverName": null,
+      "catchmentName": null,
+      "lat": null,
+      "long": null,
+      "easting": null,
+      "northing": null,
+      "measures": []
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/stations/1106TD",
+      "stationReference": "1106TD",
+      "label": "Rainfall Station Test",
+      "town": "Reading",
+      "riverName": null,
+      "catchmentName": "Loddon",
+      "RLOIid": "1188",
+      "status": "Active",
+      "lat": 51.4569,
+      "long": -0.9734,
+      "easting": 469000,
+      "northing": 173200,
+      "measures": [
+        "http://environment.data.gov.uk/flood-monitoring/id/measures/1106TD-rainfall-tipping-bucket-raingauge"
+      ]
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/stations/9999XX",
+      "stationReference": "9999XX",
+      "label": "Legacy Station With Dirty Status",
+      "town": null,
+      "status": "---",
+      "lat": 52.1,
+      "long": -1.2,
+      "easting": 440000,
+      "northing": 250000,
+      "measures": []
+    },
+    {
+      "@id": "http://environment.data.gov.uk/flood-monitoring/id/stations/2201TH",
+      "stationReference": "2201TH",
+      "label": "Marlow River Thames",
+      "town": "Marlow",
+      "riverName": "River Thames",
+      "catchmentName": "Thames Valley from Cookham to Teddington",
+      "RLOIid": "2040",
+      "status": "Active",
+      "lat": 51.5759,
+      "long": -0.7743,
+      "easting": 483560,
+      "northing": 187260,
+      "dateOpened": "1965-06-15",
+      "measures": [
+        "http://environment.data.gov.uk/flood-monitoring/id/measures/2201TH-level-15-min"
+      ]
+    }
+  ]
+}
