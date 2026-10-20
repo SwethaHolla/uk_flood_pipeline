@@ -1,0 +1,39 @@
+name: uk_flood
+version: 1.0.0
+config-version: 2
+
+profile: uk_flood
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  uk_flood:
+    +materialized: view
+    staging:
+      +schema: staging
+      +tags: ["staging"]
+    core:
+      +schema: core
+      +tags: ["core"]
+      fct_readings:
+        +materialized: incremental
+        +incremental_strategy: merge
+        +partition_by:
+          field: reading_date
+          data_type: date
+        +cluster_by: ["measure_id"]
+    marts:
+      +schema: marts
+      +tags: ["marts"]
+
+flags:
+  require_cast_to_ts_in_incremental_strategy: true

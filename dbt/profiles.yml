@@ -1,0 +1,13 @@
+uk_flood:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: "{{ env_var('BQ_AUTH_METHOD', 'oauth') }}"
+      project: "{{ env_var('GCP_PROJECT_ID', 'ukfloodpipeline') }}"
+      dataset: "{{ env_var('BQ_DBT_SCHEMA', 'uk_flood') }}"
+      location: "{{ env_var('BQ_LOCATION', 'US') }}"
+      threads: 4
+      maximum_bytes_billed: "{{ env_var('MAX_BYTES_BILLED', '10737418240') | int }}"
+      # Only used when BQ_AUTH_METHOD=service_account
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS', '') }}"

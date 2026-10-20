@@ -1,0 +1,19 @@
+[sqlfluff]
+dialect = bigquery
+templater = dbt
+max_line_length = 120
+exclude_rules = RF04,ST06,LT05
+large_file_skip_bytea = 0
+
+[sqlfluff:templater:dbt]
+profiles_dir = dbt
+project_dir = dbt
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = upper

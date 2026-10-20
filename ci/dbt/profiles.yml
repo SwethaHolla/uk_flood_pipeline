@@ -1,0 +1,13 @@
+# Dummy profile for CI: `dbt parse` and sqlfluff's dbt templater compile the
+# project without ever contacting a warehouse, so credentials are irrelevant.
+uk_flood:
+  target: ci
+  outputs:
+    ci:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT_ID', 'ci-dummy') }}"
+      dataset: "{{ env_var('BQ_DBT_SCHEMA', 'ci_dummy') }}"
+      location: US
+      threads: 2
+      maximum_bytes_billed: 10737418240
