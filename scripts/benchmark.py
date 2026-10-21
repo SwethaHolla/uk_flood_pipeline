@@ -24,10 +24,10 @@ QUERIES = [
     {
         "name": "Daily readings last 7 days",
         "sql": """
-            SELECT measure_id, DATE(dateTime) as d, COUNT(*) as cnt, AVG(CAST(value AS FLOAT64)) as avg_val
-            FROM `uk_flood.fct_readings`
-            WHERE DATE(dateTime) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
-            GROUP BY measure_id, d
+            SELECT measure_id, reading_date as d, COUNT(*) as cnt, AVG(reading_value) as avg_val
+            FROM `uk_flood_core.fct_readings`
+            WHERE reading_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+            GROUP BY measure_id, reading_date
             ORDER BY d DESC
         """,
     },
@@ -35,8 +35,8 @@ QUERIES = [
         "name": "Station completeness",
         "sql": """
             SELECT station_id, COUNT(DISTINCT measure_id) as measures, COUNT(*) as readings
-            FROM `uk_flood.fct_readings`
-            WHERE DATE(dateTime) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+            FROM `uk_flood_core.fct_readings`
+            WHERE reading_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
             GROUP BY station_id
             ORDER BY readings DESC
         """,
@@ -44,18 +44,18 @@ QUERIES = [
     {
         "name": "Active flood warnings",
         "sql": """
-            SELECT * FROM `uk_flood.mart_flood_warning_history`
-            WHERE is_current = TRUE
+            SELECT * FROM `uk_flood_marts.mart_flood_warning_history`
+            WHERE time_raised >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
         """,
     },
     {
         "name": "River level trends",
         "sql": """
-            SELECT station_id, DATE_TRUNC(dateTime, HOUR) as hour, AVG(CAST(value AS FLOAT64)) as avg_level
-            FROM `uk_flood.mart_river_level_trends`
-            WHERE DATE(dateTime) >= DATE_SUB(CURRENT_DATE(), INTERVAL 24 HOUR)
-            GROUP BY station_id, hour
-            ORDER BY hour DESC
+            SELECT station_id, hour_bucket, avg_level, readings
+            FROM `uk_flood_marts.mart_river_level_trends`
+            WHERE hour_bucket >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+            ORDER BY hour_bucket DESC
+            LIMIT 100
         """,
     },
 ]
