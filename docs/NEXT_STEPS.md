@@ -1,27 +1,43 @@
 # NEXT_STEPS.md
 
-Open threads. Update at the end of each phase.
+**Status:** Phases 1-4 complete, moving to 5-7
 
-## Blocking the Phase 0 sign-off
-- [ ] Decide BigQuery option **(a) billing-enabled + budget alert** vs **(b)
-      sandbox + re-seed** (PRD §12 Q1). Billing currently disabled on
-      `ukfloodpipeline`; sandbox forbids DML.
-- [ ] Decide retention: do we need data >60 days? (PRD Q2)
-- [ ] Confirm budget-alert threshold + payment-method OK (PRD Q3).
-- [ ] Confirm repo name / visibility / owner (PRD Q4).
-- [ ] Alerting channel: Slack or email (PRD Q5).
-- [ ] History scope: `?latest` only, or also the ~4-week window (PRD Q6).
-- [ ] `gh auth login` before Phase 1 (or fallback manual remote) (PRD Q7).
+## Completed
+- [x] Phase 0: Discovery & PRD
+- [x] Phase 1: Repo scaffolding, CI, Docker/Airflow setup
+- [x] Phase 2: dlt ingestion + Pydantic contracts + quarantine
+- [x] Phase 3: dbt staging/core/marts + tests + Elementary (verified on BigQuery)
+- [x] Phase 4: Airflow DAGs (ingest -> dbt -> Elementary), chaos & benchmark scripts
+- [x] BigQuery enabled with billing, APIs enabled, live data ingested
+- [x] README comprehensive, all PRs merged
 
-## Blocking Phase 1 start
-- [ ] `gh auth login` (currently unauthenticated).
-- [ ] If option (a): enable billing + BigQuery API on `ukfloodpipeline` — will
-      show a plan and wait for "proceed" (billable/irreversible-ish).
+## Phase 5: Observability & Alerting
+- [ ] Generate Elementary report: `make elementary-report`
+- [ ] Configure alerting channel (Slack webhook or email) - decide
+- [ ] Validate `run_metadata` and `quarantine` tables populated correctly
+- [ ] Set up budget alert in GCP Console (£1 threshold recommended)
 
-## Later / watch
-- [ ] Confirm dlt BigQuery write dispositions actually used (append vs merge vs
-      replace) once ingestion is built; document each.
-- [ ] If option (b) chosen: design load-job/replace workarounds for dlt merge,
-      dbt incremental and Elementary, plus re-seed script.
-- [ ] Verify whether `type`/`status` fields appear only under filters or
-      `_view=full` on stations (need this for the contract).
+## Phase 6: Chaos & Performance
+- [ ] Run chaos harness against mock API: `make chaos`
+- [ ] Document chaos results in `docs/chaos-results.md`
+- [ ] Run benchmarks against BigQuery: `python scripts/benchmark.py`
+- [ ] Document benchmarks in `docs/benchmarks.md`
+
+## Phase 7: Polish & Documentation
+- [ ] Final verification: `make ci` passes locally
+- [ ] Document dlt write dispositions per resource
+- [ ] Update `docs/DECISIONS.md` with all key decisions
+- [ ] Verify all PRD acceptance criteria met
+- [ ] Tag release if desired
+
+## Open Questions (resolved)
+- [x] BigQuery: option (a) billing-enabled - done
+- [x] Repo: `https://github.com/SwethaHolla/uk_flood_pipeline.git` public
+- [x] `gh` authenticated
+- [x] History scope: using `?latest` + `seed_history.py` for backfill
+
+## Notes
+- Airflow can be started with `make up` from `docker/`
+- All phases 1-3 verified against real BigQuery project `ukfloodpipeline`
+- Elementary monitors gated to BigQuery target only
+
