@@ -76,3 +76,4 @@ models:
         tests:
           - accepted_values:
               values: [1, 2, 3, 4]
+              quote: false

@@ -15,7 +15,7 @@ select
     long,
     easting,
     northing,
-    try_cast(date_opened as date) as date_opened,
+    cast(date_opened as date) as date_opened,
     _dlt_load_id,
     _dlt_id
 from source
