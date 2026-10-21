@@ -1,99 +1,181 @@
 # UK Flood Pipeline
 
-An end-to-end data engineering portfolio project: ingest Environment Agency (EA) flood-monitoring data, load it to BigQuery via [dlt](https://dlthub.com/), transform with [dbt](https://www.getdbt.com/), orchestrate with [Apache Airflow](https://airflow.apache.org/) (Docker), monitor with [Elementary](https://www.elementary-data.com/), and gate quality with [pytest](https://docs.pytest.org/), [ruff](https://docs.astral.sh/ruff/), [sqlfluff](https://sqlfluff.com/), and GitHub Actions.
+A resilient, observable batch ELT pipeline that ingests UK Environment Agency (EA) Flood Monitoring data, normalizes it through a medallion architecture, and delivers analytics-ready flood insights. Built with production-grade patterns for idempotency, data quality, resilience, and observability.
+
+## What it does
+
+- **Ingests** real-time and latest flood data (stations, measures, flood warnings, readings) from the [EA Flood Monitoring API](https://environment.data.gov.uk/flood-monitoring/doc/reference) with no API key required
+- **Handles messy real-world data** - normalizes inconsistent types (list/numeric values), missing values, dirty categoricals, and timezone inconsistencies per EA API quirks
+- **Loads to BigQuery** via [dlt](https://dlthub.com/) with quarantine for failed records, run metadata tracking, and schema change detection
+- **Transforms with dbt** into a medallion model (staging → core → marts) with incremental processing, partitioning, and clustering
+- **Orchestrates** with [Apache Airflow](https://airflow.apache.org/) on a 15-minute schedule (ingest → dbt → Elementary)
+- **Monitors quality** with dbt tests, 4 singular data quality tests, and [Elementary](https://www.elementary-data.com/) anomaly detection
+- **Validates resilience** with a chaos harness testing 7 failure scenarios (timeouts, 429s, 500s, malformed data, etc.)
 
 ## Architecture
 
 ```
-EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →  BigQuery (raw: uk_flood_raw)
+EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →  BigQuery (uk_flood_raw)
                                                                                     ↓
                                                                                dbt (staging/core/marts)
                                                                                     ↓
-                                                                           marts (reliability/trends/warnings)
+                                                                        marts (reliability/trends/warnings)
+                                                                                    ↓
+                                                                          Elementary + Airflow orchestration
 ```
 
-Local/offline parity uses a mock FastAPI server + DuckDB. Airflow DAGs live under `dags/`.
+**Local/offline parity:** Mock FastAPI server + DuckDB for development without GCP credentials. Airflow DAGs in `dags/`.
 
 ## Tech stack
 
-| Layer | Tool |
+| Layer | Tools |
 | --- | --- |
 | Language/runtime | Python 3.12, [uv](https://docs.astral.sh/uv/) |
-| Ingestion | [dlt](https://dlthub.com/) (BigQuery/DuckDB) |
-| Validation | [Pydantic v2](https://docs.pydantic.dev/) |
-| Transformation | [dbt-core 1.9](https://docs.getdbt.com/) + [dbt-bigquery](https://docs.getdbt.com/docs/core/connect-data-platform/bigquery-setup) / [dbt-duckdb](https://docs.getdbt.com/docs/core/connect-data-platform/duckdb-setup) |
-| Data quality/observability | [Elementary 0.16](https://docs.elementary-data.com/) (BigQuery only), dbt tests + 4 singular tests |
-| Orchestration | [Apache Airflow](https://airflow.apache.org/) via `docker/docker-compose.yml` |
+| Ingestion | [dlt](https://dlthub.com/) 1.x (BigQuery/DuckDB), [httpx](https://www.python-httpx.org/), [tenacity](https://tenacity.readthedocs.io/) |
+| Validation | [Pydantic v2](https://docs.pydantic.dev/) with strict contracts and quarantine |
+| Transformation | [dbt-core 1.9.11](https://docs.getdbt.com/) + [dbt-bigquery 1.9.2](https://docs.getdbt.com/docs/core/connect-data-platform/bigquery-setup) / [dbt-duckdb 1.9.6](https://docs.getdbt.com/docs/core/connect-data-platform/duckdb-setup) |
+| Data quality/observability | [Elementary 0.16.4](https://docs.elementary-data.com/) (BigQuery), dbt generic + singular tests |
+| Orchestration | [Apache Airflow 2.10.4](https://airflow.apache.org/) via Docker Compose (LocalExecutor) |
 | Testing/lint | [pytest](https://docs.pytest.org/), [ruff](https://docs.astral.sh/ruff/), [sqlfluff](https://sqlfluff.com/), [pre-commit](https://pre-commit.com/) |
-| CI | GitHub Actions (`.github/workflows/ci.yml`) |
+| CI/CD | GitHub Actions |
 
-## Quick start (offline)
+## Results & Metrics
+
+### Data Quality (BigQuery - `ukfloodpipeline`)
+| Metric | Result |
+| --- | --- |
+| dbt build (dev target) | **85 PASS / 1 WARN / 0 ERR** (86 total) |
+| Models built | 16 incremental + 27 views + 1 table |
+| Data tests | 40 schema tests + 4 singular tests |
+| Elementary anomaly monitors | **Passed** (ran on marts) |
+| Raw data loaded | 5,404+ latest readings, 5,538 stations, 7,429 measures, 7 flood warnings |
+
+### Data Quality (Local/DuckDB)
+| Metric | Result |
+| --- | --- |
+| dbt build (local target) | **52 PASS / 0 WARN / 0 ERR** |
+| Offline tests | **38 passed** (100%) |
+| Linting (ruff + sqlfluff) | **Clean** |
+
+### Performance (BigQuery, on-demand $5/TB)
+| Query | Time | Bytes Billed | Est. Cost |
+| --- | --- | --- | --- |
+| Daily readings (7 days) | 1.83s | 10.49 MB | $0.000048 |
+| Station completeness (30 days) | 1.23s | 10.49 MB | $0.000048 |
+| Active flood warnings | 1.21s | 10.49 MB | $0.000048 |
+| River level trends (24h) | 1.32s | 41.94 MB | $0.000191 |
+| **Total** | **5.59s** | **73.40 MB** | **$0.000334** |
+
+*Optimizations:* `fct_readings` partitioned by `reading_date` (DAY), clustered by `measure_id`, incremental (MERGE on BigQuery / DELETE+INSERT on DuckDB).
+
+### Resilience (Chaos Testing)
+| Scenario | Expected Behavior | Status |
+| --- | --- | --- |
+| API Timeout | Retry with exponential backoff | **Handled** |
+| 429 Rate Limit | Respect retry-after, backoff | **Handled** |
+| 500 Server Error | Retry with backoff | **Handled** |
+| Malformed JSON | Parse error → quarantine | **Handled** |
+| Missing/Bad Fields | Contract validation → quarantine | **Handled** |
+| Network Error | Connection retry with backoff | **Handled** |
+| Slow Response | Timeout → retry/backoff | **Handled** |
+
+All failures routed to `quarantine` table with `raw_payload` and `error_reason`. Pipeline continues on individual resource failures.
+
+## Quick start (offline - no GCP needed)
 
 ```bash
 # Install dependencies
 uv sync --all-extras --dev
 
-# Ingest mock API into local DuckDB
+# Ingest mock EA API data into local DuckDB
 make ingest-local
 
-# Build dbt models/tests against DuckDB
+# Build and test dbt models against DuckDB
 make dbt-build-local
+
+# Run offline tests
+make test
 ```
 
-## GCP / BigQuery
+## GCP / BigQuery setup
 
 ```bash
-# Authenticate (service account key or ADC)
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
+# Authenticate
+gcloud auth login
+gcloud auth application-default login
+
+# Set environment
 export GCP_PROJECT_ID=ukfloodpipeline
 export BQ_LOCATION=US
 export BQ_RAW_DATASET=uk_flood_raw
 export BQ_DBT_SCHEMA=uk_flood
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 
-# Run one ingestion cycle against EA API
+# Ingest from EA API
 make ingest
 
-# Seed ~4 weeks of per-measure readings history
+# Seed ~4 weeks of history (per-measure)
 make seed-history
 
-# Transform in BigQuery
+# Transform with dbt
 make dbt-deps
 make dbt-build
+
+# Generate Elementary report
+make elementary-report
 ```
 
-## Project layout
+## Orchestration (Airflow)
+
+```bash
+# Start Airflow locally
+cd docker
+docker compose up -d
+
+# Access UI at http://localhost:8080 (admin/admin)
+# DAG: uk_flood_pipeline (runs every 15 min)
+# Tasks: ingest_raw_data → dbt_build → elementary_monitoring
+```
+
+## Project structure
 
 ```text
-src/uk_flood/        # contracts, EA client, dlt pipelines, settings
-mock_api/            # FastAPI mock EA API + fixtures (quirk-embedded)
+src/uk_flood/        # contracts, EA client, dlt pipelines, settings, CLI
+mock_api/            # FastAPI mock EA API + fixtures (mirrors real API quirks)
 scripts/             # ingest_local, seed_history, chaos, benchmark
-dbt/                 # staging/core/marts, macros, tests, profiles/packages
 dags/                # Airflow DAGs
-docker/              # Airflow docker-compose
+docker/              # Airflow Dockerfile + docker-compose
+dbt/                 # staging/core/marts, macros, tests, profiles, packages
 tests/               # offline pytest suite (38 tests)
 .github/workflows/   # CI (lint, test, dbt parse, sqlfluff, fresh-clone)
-docs/                # PRD, decisions, next steps
+docs/                # PRD, DECISIONS, NEXT_STEPS, chaos-results, benchmarks
 ```
 
-## Data model (dbt)
+## Data model
 
-- **Staging** (`stg_*`): typed/renamed, cleans PRD §7 quirks — list readings (`value_raw`/`value_is_list`), missing values (`value_missing`), dirty categoricals via `clean_categorical()`, naive timestamps treated as UTC, dlt array normalisation handled (`stations__measures`).
-- **Core**: `dim_station`, `dim_measure`, `dim_flood_area`, `fct_readings` (incremental — `merge`+partition/cluster on BigQuery, `delete+insert` on DuckDB), `fct_flood_warnings`.
-- **Marts**: `mart_station_reliability` (completeness/freshness), `mart_river_level_trends` / `mart_rainfall_trends` (hourly), `mart_flood_warning_history`.
-- **Tests**: schema tests + singular tests (`assert_no_future_readings`, `assert_no_duplicate_reading_keys`, `assert_list_values_always_have_raw`, `assert_bridge_measures_resolve`). Elementary anomaly monitors are gated to BigQuery.
+**Raw (dlt):** `stations`, `measures`, `flood_warnings`, `readings_latest`, `readings` (history), `quarantine`, `run_metadata`, `stations__measures` (normalized)
 
-## Observability & hygiene
+**Staging:** Type-safe views handling EA quirks - list values → `value_raw`/`value_is_list`, missing values → `value_missing`, dirty categoricals cleaned via `clean_categorical()` macro, naive timestamps normalized to UTC
 
-- **Quarantine**: contract failures captured with raw payload + error reason.
-- **Run metadata**: one row per resource per ingestion run.
-- **Idempotent loads**: dlt merge keys + `run_metadata` schema hashing for change detection.
-- **Cost guardrails**: `maximum_bytes_billed` on BigQuery, `.env` secrets never committed.
+**Core:** `dim_station`, `dim_measure`, `dim_flood_area`, `fct_readings` (incremental, partitioned/clustered), `fct_flood_warnings`
 
-## Verification (current state)
+**Marts:** `mart_station_reliability` (completeness/freshness), `mart_river_level_trends`, `mart_rainfall_trends`, `mart_flood_warning_history`
 
-- **BigQuery**: `uk_flood_raw` loaded via dlt; `dbt build --target dev` — 85/86 PASS (1 expected warning).
-- **Local/DuckDB**: `dbt build --target local` — 52/52 PASS; `pytest -m "not integration"` — 38 passed.
-- **CI**: lint/test/dbt-parse/sqlfluff/fresh-clone all green on `main`.
+**Data quality:** Schema tests (unique/not_null/relationships/accepted_values) + singular tests (`assert_no_future_readings`, `assert_no_duplicate_reading_keys`, `assert_list_values_always_have_raw`, `assert_bridge_measures_resolve`)
+
+## Key features
+
+- **Idempotent ingestion** - dlt merge keys, run metadata tracking, safe to re-run
+- **Resilient client** - Retries with exponential backoff, timeouts, handles 429/5xx, follows redirects
+- **Quarantine system** - All contract validation failures captured with full raw payload
+- **Smart incremental** - dbt incremental with adapter-specific strategies (MERGE on BigQuery, DELETE+INSERT on DuckDB)
+- **Cost-aware** - Partitioning/clustering, `maximum_bytes_billed`, minimal scan costs
+- **Offline-first** - Full local development with mock API and DuckDB
+- **CI/CD** - Lint, test, dbt parse, sqlfluff, fresh-clone checks on every PR
+
+## Repository
+
+[https://github.com/SwethaHolla/uk_flood_pipeline](https://github.com/SwethaHolla/uk_flood_pipeline)
 
 ## License
 
