@@ -126,7 +126,7 @@ def run_chaos() -> None:
         for r in results:
             s = r["scenario"]
             obs = r.get("status", "N/A")
-            status = "✅ Handled" if r.get("ok") else "❌ Failed"
+            status = "[OK] Handled" if r.get("ok") else "[FAIL] Failed"
             f.write(f"| {s['id']} | {s['name']} | {s['endpoint']} | {s['expected']} | {obs} | {status} |\n")
         f.write("\n## Notes\n\n")
         f.write("- All scenarios tested against local mock FastAPI server\n")
