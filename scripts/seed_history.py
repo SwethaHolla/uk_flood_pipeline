@@ -59,18 +59,37 @@ def seed(
     duckdb_path: str,
     measure_limit: int | None,
     batch_size: int,
+    dry_run: bool = False,
+    max_requests: int | None = None,
 ) -> int:
     settings = get_settings()
     client = EAClient(settings)
     state = _load_state()
     done: set[str] = set(state["completed_measures"])
+    print(f"state file: {STATE_FILE.resolve()} ({len(done)} completed)")
 
     measures = client.get_items("/id/measures")
     measure_uris = [m["@id"] for m in measures if "@id" in m]
     if measure_limit:
         measure_uris = measure_uris[:measure_limit]
     todo = [m for m in measure_uris if m not in done]
+    if max_requests is not None:
+        todo = todo[:max_requests]
     print(f"{len(measure_uris)} measures total, {len(done)} already done, {len(todo)} to fetch")
+
+    if dry_run:
+        # Estimate only: 1 request per measure (the API returns each measure's
+        # full window in one call). Report the budget so the operator can decide
+        # 7 vs 28 days before spending any quota.
+        est_seconds = len(todo) * 0.05 / max(workers, 1)
+        print(
+            f"DRY RUN: {len(todo)} requests would be issued "
+            f"(workers={workers}); ~{est_seconds:.0f}s paced lower bound. "
+            f"No data loaded."
+        )
+        client.close()
+        return 0
+
 
     lock = threading.Lock()
     collected: list[dict] = []
@@ -128,6 +147,17 @@ def main() -> int:
         "--measure-limit", type=int, default=None, help="Debug: only fetch N measures"
     )
     parser.add_argument("--batch-size", type=int, default=2000, help="Load every N measures")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Estimate request count/runtime only; load nothing.",
+    )
+    parser.add_argument(
+        "--max-requests",
+        type=int,
+        default=None,
+        help="Hard cap on measures fetched this run (budget guard).",
+    )
     args = parser.parse_args()
     return seed(
         destination=args.destination,
@@ -135,6 +165,8 @@ def main() -> int:
         duckdb_path=args.duckdb_path,
         measure_limit=args.measure_limit,
         batch_size=args.batch_size,
+        dry_run=args.dry_run,
+        max_requests=args.max_requests,
     )
 
 

@@ -376,7 +376,13 @@ def _extract_load_id(load_info: Any) -> str | None:
 
 
 def _write_run_metadata(pipeline: dlt.Pipeline, report: IngestReport) -> None:
-    """Append one run_metadata row per resource (+ a summary row)."""
+    """Append one run_metadata row per resource (+ a summary row).
+
+    A failure to persist run metadata is a *silent* loss of the pipeline's whole
+    audit trail (this is exactly how BigQuery ended up with no ``run_metadata``
+    table). We therefore re-raise so the caller/caller-DAG sees the failure and
+    marks the run as failed, instead of logging-and-forgetting.
+    """
     ended = report.ended_at or datetime.now(UTC)
     total_duration = (ended - report.started_at).total_seconds()
     rows: list[dict[str, Any]] = []
@@ -419,5 +425,9 @@ def _write_run_metadata(pipeline: dlt.Pipeline, report: IngestReport) -> None:
                 rows, name="run_metadata", write_disposition="append", columns=RUN_METADATA_COLUMNS
             )
         )
-    except Exception:
+    except Exception as exc:
         logger.exception("Failed to write run_metadata for run %s", report.run_id)
+        report.status = "failed"
+        raise RuntimeError(
+            f"Failed to persist run_metadata for run {report.run_id}: {exc}"
+        ) from exc
