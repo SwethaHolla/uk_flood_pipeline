@@ -78,6 +78,34 @@ measures sharing recent timestamps.
 - **This is the GATE.** No dataset will be created, dropped, or moved until the user
   approves §6 below.
 
+### 2.1 Seed cost estimate (dry-run evidence, 2026-10-22)
+Command (loads nothing):
+```
+uv run python scripts/seed_history.py --destination bigquery --dry-run
+```
+Output:
+```
+state file: ...\data\seed_history_state.json (0 completed)
+7437 measures total, 0 already done, 7437 to fetch
+DRY RUN: 7437 requests would be issued (workers=4); ~93s paced lower bound. No data loaded.
+```
+**Important honesty note:** the seeder issues **~7,437 requests either way** — the
+global history endpoint caps at 10k rows and rejects `?since=`, so history is pulled
+**per measure**, and each `?measure=<uri>` call returns that measure's **full ~4-week
+window in one response**. There is currently **no server-side 7-vs-28-day filter**;
+a "7-day seed" would still fetch the full window and then either load all of it or
+filter client-side.
+
+Estimated rows (15-min cadence ≈ 96/day/measure):
+- 7-day window: ~**5.0 M** rows
+- 28-day window: ~**20.0 M** rows
+
+So the request/time cost is the same; the decision that matters for load size and
+storage is 7-day (~5M rows, ~1.5 GB raw uncompressed order-of-magnitude) vs 28-day
+(~20M rows). Both are within the free 1 TiB/month query tier for scans, but this is
+**not** a "trivial" load and I will not understate it. Recommend: seed **7 days**,
+measure actual bytes/time, then decide on 28.
+
 ---
 
 ## 3. Elementary baselines (item 3) — answered
