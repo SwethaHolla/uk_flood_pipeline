@@ -1,1 +1,89 @@
-name: CIon:  push:    branches: [main]  pull_request:    branches: [main]concurrency:  group: ci-${{ github.ref }}  cancel-in-progress: trueenv:  UV_PYTHON: "3.12"jobs:  lint:    name: Lint (ruff + sqlfluff)    runs-on: ubuntu-latest    steps:      - uses: actions/checkout@v4      - uses: astral-sh/setup-uv@v5        with:          enable-cache: true      - run: uv sync --frozen --all-extras --dev      - run: uv run ruff check src tests scripts mock_api dags      - run: uv run ruff format --check src tests scripts mock_api dags  test:    name: Tests (offline)    runs-on: ubuntu-latest    steps:      - uses: actions/checkout@v4      - uses: astral-sh/setup-uv@v5        with:          enable-cache: true      - run: uv sync --frozen --all-extras --dev      - run: uv run pytest -m "not integration" --cov=src --cov-report=term-missing  dbt-parse:    name: dbt parse    runs-on: ubuntu-latest    steps:      - uses: actions/checkout@v4      - uses: astral-sh/setup-uv@v5        with:          enable-cache: true      - run: uv sync --frozen --all-extras --dev      - name: dbt deps        run: uv run dbt deps --profiles-dir ci/dbt --project-dir dbt      - name: dbt parse (no warehouse connection)        run: uv run dbt parse --profiles-dir ci/dbt --project-dir dbt        env:          # Dummy credentials: `dbt parse` compiles without contacting BigQuery          GCP_PROJECT_ID: ci-dummy          BQ_DBT_SCHEMA: ci_dummy  sqlfluff:    name: Lint (sqlfluff / dbt templater)    runs-on: ubuntu-latest    steps:      - uses: actions/checkout@v4      - uses: astral-sh/setup-uv@v5        with:          enable-cache: true      - run: uv sync --frozen --all-extras --dev      - run: uv run dbt deps --profiles-dir ci/dbt --project-dir dbt      - run: uv run sqlfluff lint dbt/models        env:          GCP_PROJECT_ID: ci-dummy          BQ_DBT_SCHEMA: ci_dummy  fresh-clone:    name: Fresh-clone reproducibility    runs-on: ubuntu-latest    steps:      - uses: actions/checkout@v4        with:          path: origin      - uses: astral-sh/setup-uv@v5        with:          enable-cache: true      - name: Clone into a clean directory and run the offline gate        run: |          git clone "$GITHUB_WORKSPACE/origin" fresh-clone          cd fresh-clone          uv sync --frozen --all-extras --dev          uv run ruff check src tests scripts mock_api dags          uv run pytest -m "not integration"
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_PYTHON: "3.12"
+
+jobs:
+  lint:
+    name: Lint (ruff + sqlfluff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run ruff check src tests scripts mock_api dags
+      - run: uv run ruff format --check src tests scripts mock_api dags
+
+  test:
+    name: Tests (offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run pytest -m "not integration" --cov=src --cov-report=term-missing
+
+  dbt-parse:
+    name: dbt parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - name: dbt deps
+        run: uv run dbt deps --profiles-dir ci/dbt --project-dir dbt
+      - name: dbt parse (no warehouse connection)
+        run: uv run dbt parse --profiles-dir ci/dbt --project-dir dbt
+        env:
+          # Dummy credentials: `dbt parse` compiles without contacting BigQuery
+          GCP_PROJECT_ID: ci-dummy
+          BQ_DBT_SCHEMA: ci_dummy
+
+  sqlfluff:
+    name: Lint (sqlfluff / dbt templater)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run dbt deps --profiles-dir ci/dbt --project-dir dbt
+      - run: uv run sqlfluff lint dbt/models
+        env:
+          GCP_PROJECT_ID: ci-dummy
+          BQ_DBT_SCHEMA: ci_dummy
+
+  fresh-clone:
+    name: Fresh-clone reproducibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: origin
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Clone into a clean directory and run the offline gate
+        run: |
+          git clone "$GITHUB_WORKSPACE/origin" fresh-clone
+          cd fresh-clone
+          uv sync --frozen --all-extras --dev
+          uv run ruff check src tests scripts mock_api dags
+          uv run pytest -m "not integration"
