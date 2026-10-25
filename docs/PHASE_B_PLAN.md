@@ -263,3 +263,17 @@ US and europe-west2. To honour "verify before dropping US", the plan is:
 2. On approval, drop the US datasets, create the **canonical** names in europe-west2,
    then run the real load + full seed **once**.
 This double-loads only the tiny latest snapshot, never the seed.
+
+### 10.7 Runtime & rate-limit handling (measured 2026-10-25)
+- Fetch throughput (DuckDB, live API): 40 measures → **47.1s @8 workers**, **37.8s @16 workers**
+  ⇒ 5,373 measures ≈ **106 min @8w**, **85 min @16w** (API-latency bound).
+- BigQuery merge/load overhead is additional; expect **~1.5–2 h** end-to-end for the full
+  archive, plus retries. Increase `--batch-size` (e.g. 200k) to cut load-call count.
+- Rate limiting: EA client honours `429 Retry-After` and retries `5xx` with exponential
+  backoff+jitter; per-request pacing via `--pace-seconds` (default 0.05s/worker). No
+  global token bucket — use 8–16 workers and watch for 429s.
+
+### 10.8 Airflow state
+- No Airflow containers are running (`docker ps` empty) and there is no Composer
+  instance, so there are **no live DAGs to pause**. The DAG will remain stopped until
+  the migration + seed are verified.
