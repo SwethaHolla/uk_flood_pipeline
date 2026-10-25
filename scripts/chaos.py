@@ -151,7 +151,9 @@ def run_chaos() -> None:
                 f"| {r['observed']} | {r['verdict']} |\n"
             )
         n_fail = sum(1 for r in results if r["verdict"].startswith("[FAIL]"))
-        f.write(f"\n**Result:** {len(results) - n_fail}/{len(results)} handled, {n_fail} unhandled.\n")
+        f.write(
+            f"\n**Result:** {len(results) - n_fail}/{len(results)} handled, {n_fail} unhandled.\n"
+        )
         f.write("\n## Notes\n\n")
         f.write("- All scenarios tested against local mock FastAPI server\n")
         f.write("- A connection refusal is recorded as UNHANDLED, not success\n")

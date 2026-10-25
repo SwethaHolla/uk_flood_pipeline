@@ -73,3 +73,23 @@ section. Every entry states the evidence it rests on.
 - **Decision:** `_write_run_metadata` now sets `report.status='failed'` and
   re-raises. Metadata loss = loss of the entire audit trail, so it is treated as a
   run failure.
+
+## D-007: Historical seed endpoint and active-measure semantics
+
+- **Status:** decided (implemented Phase B).
+- **Evidence:** `/data/readings?measure=` returns 0 rows; `?count=` → HTTP 400;
+  `/id/measures/{id}/readings` returns full history (2,850 rows / 29 days verified).
+  Measures with `latestReading == null` return 0 rows; stale measures return partial
+  history (763 rows / 19 days verified).
+- **Decision:** seed via the per-measure endpoint; `--active-only` skips only
+  null-latest measures and retains stale-but-partial ones. This fixes the root cause
+  of `readings` containing only the latest snapshot.
+
+## D-008: Raw retention requires a post-load rebuild (dlt limitation)
+
+- **Status:** decided.
+- **Evidence:** raw `readings` is unpartitioned and `dlt`'s BigQuery config exposes
+  no partition-expiration option.
+- **Decision:** `fct_readings` uses dbt `partition_expiration_days=90`; raw `readings`
+  is rebuilt partitioned (`scripts/apply_retention.py`, dry-run first) as part of the
+  migration, then dlt continues merging into the partitioned table.

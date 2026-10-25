@@ -210,3 +210,56 @@ Evidence from `dbt/dbt_packages/elementary/macros/edr/...`:
 3. On approval: migrate datasets, reload, seed 7 days, run tests (§1.5), build core,
    populate elementary window.
 4. Report; **GATE checkpoint #2** for key deletion.
+
+---
+
+## 10. Pre-flight findings (2026-10-25) — supersedes earlier seed assumptions
+
+### 10.1 Seeder was broken twice (root cause of zero history)
+- `/data/readings?measure=<uri>` returns **0 rows** (it does not support measure filtering).
+- `/data/readings?...&count=30000` returns **HTTP 400** ("Did not recognize request parameters [count]").
+- Correct route: **`/id/measures/{id}/readings`** → returns the measure''s full available
+  history (verified: 2,850 rows / 29 days for a 15-min measure).
+- Fix applied in `fetch_measure_readings`.
+
+### 10.2 Active-measure filter (empirically justified)
+- EA measures have **no `status` field**. "Active" is inferred from `latestReading`.
+- Verified by sampling (`/id/measures/{id}/readings`):
+  - `latestReading == null` → **0 rows** (safe to skip; 2,064 measures).
+  - stale `latestReading` → **partial history still returned** (e.g. 763 rows / 19d).
+- Therefore `--active-only` keeps stale-but-present measures (5,373) and skips only
+  null ones. `--active-within-days > 0` is the stricter option.
+
+### 10.3 Corrected volume estimate (cadence-based, active measures)
+```
+uv run python scripts/seed_history.py --destination bigquery --active-only --dry-run
+catalogue=7437 selected=5373 skipped_inactive=2064
+cadence estimate ~482,712 rows/day  (~3,378,984 / 7d, ~13,515,936 / ~28d)
+```
+Pilot (100 active measures) scaled linearly ⇒ **~17.3M** because a small tail of
+measures carries **much more than 4 weeks** (up to 893 days). Treat 13.5M as the
+cadence floor and ~17M as the realistic total; the endpoint returns *full available
+history*, so "no client-side filter" means loading that tail too.
+
+### 10.4 Pilot evidence (100 active measures → local DuckDB)
+```
+rows=322,111  distinct_measures=100
+per-measure coverage days: min=29 median=29 max=893
+duplicate (measure, datetime) keys=0     (after identical re-run with --reset-state)
+```
+Median measure ≈ 29 days / ≈2,850 rows; a few long-archive measures dominate the tail.
+
+### 10.5 Retention
+- `fct_readings`: added `partition_expiration_days=90` (dbt-bigquery supports it).
+- Raw `readings`: dlt creates it **unpartitioned** and exposes no expiry option, so
+  `scripts/apply_retention.py` rebuilds it partitioned by `DATE(datetime)` with 90-day
+  expiry (dry-run supported). Staging `stg_readings` is a view (N/A).
+
+### 10.6 Migration naming constraint (needs decision)
+BigQuery dataset IDs are **unique per project** — `uk_flood_raw` cannot exist in both
+US and europe-west2. To honour "verify before dropping US", the plan is:
+1. Create **temporary** europe-west2 datasets (`*_euw2`), load latest only, verify
+   row counts + dbt build + Elementary against them; show results.
+2. On approval, drop the US datasets, create the **canonical** names in europe-west2,
+   then run the real load + full seed **once**.
+This double-loads only the tiny latest snapshot, never the seed.

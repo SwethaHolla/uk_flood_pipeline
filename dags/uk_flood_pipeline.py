@@ -38,7 +38,6 @@ with DAG(
     max_active_runs=1,
     tags=["uk-flood", "ingestion", "dbt"],
 ) as dag:
-
     ingest_raw = BashOperator(
         task_id="ingest_raw_data",
         bash_command=f"cd {PROJECT_DIR} && PYTHONPATH={PYTHONPATH} python -m uk_flood.ingest run --destination bigquery",

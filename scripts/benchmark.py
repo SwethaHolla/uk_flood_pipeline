@@ -109,9 +109,13 @@ def run_benchmarks(project_id: str = "ukfloodpipeline") -> None:
         total_bytes = sum(r["bytes_billed"] for r in results)
         f.write(f"| **TOTAL** | - | - | **{total_bytes:,}** | **${total_cost:.6f}** |\n")
         f.write("\n## Optimization Notes\n\n")
-        f.write("- **Partitioning:** `fct_readings` partitioned by `DATE(dateTime)` for time-based pruning\n")
+        f.write(
+            "- **Partitioning:** `fct_readings` partitioned by `DATE(dateTime)` for time-based pruning\n"
+        )
         f.write("- **Clustering:** Clustered by `measure_id` to optimize joins and filters\n")
-        f.write("- **Incremental:** `fct_readings` uses incremental materialization (merge on BQ, delete+insert on DuckDB)\n")
+        f.write(
+            "- **Incremental:** `fct_readings` uses incremental materialization (merge on BQ, delete+insert on DuckDB)\n"
+        )
         f.write("- **Staging:** Views for fast development, materialized where beneficial\n")
 
     print(f"Results written to {RESULTS_FILE}")

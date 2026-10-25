@@ -47,8 +47,7 @@ def test_load_history_spans_requested_window(settings, duckdb_path):
     con = duckdb.connect(duckdb_path)
     try:
         span = con.execute(
-            "SELECT DATE_DIFF('day', MIN(datetime), MAX(datetime)) "
-            "FROM uk_flood_raw.readings"
+            "SELECT DATE_DIFF('day', MIN(datetime), MAX(datetime)) FROM uk_flood_raw.readings"
         ).fetchone()[0]
         count = con.execute("SELECT COUNT(*) FROM uk_flood_raw.readings").fetchone()[0]
     finally:
