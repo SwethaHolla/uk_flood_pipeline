@@ -390,6 +390,7 @@ def load_readings_history(
             name="readings",
             write_disposition="merge",
             primary_key=READING_HISTORY_SPEC["primary_keys"],
+            columns=TABLE_COLUMNS["readings"],
         )
     ]
     if quarantined:
