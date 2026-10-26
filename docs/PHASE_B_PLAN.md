@@ -277,3 +277,36 @@ This double-loads only the tiny latest snapshot, never the seed.
 - No Airflow containers are running (`docker ps` empty) and there is no Composer
   instance, so there are **no live DAGs to pause**. The DAG will remain stopped until
   the migration + seed are verified.
+
+## 11. Migration rehearsal in europe-west2 (temporary `*_euw2` datasets)
+
+Datasets created in `europe-west2`: `uk_flood_raw_euw2`, `uk_flood_raw_euw2_staging`,
+`uk_flood_euw2`, `uk_flood_euw2_staging`, `uk_flood_euw2_core`, `uk_flood_euw2_marts`.
+Global dlt state (`~/.dlt/pipelines/uk_flood_raw`) was reset first (D-010).
+
+**Latest-only reload (2026-10-26, live API):**
+
+| table | rows |
+|---|---|
+| stations | 5,537 |
+| measures | 7,438 |
+| readings_latest | 5,376 |
+| readings (dual-write) | 5,376 |
+| flood_warnings | 114 |
+| quarantine | 2 |
+| run_metadata | 5 (4 resources + summary) |
+
+**dbt build (BigQuery, temp):** 85 PASS, 1 WARN (known unit whitelist), 0 ERROR;
+Elementary monitors executed. `fct_readings`: 5,376 rows, 20 distinct dates,
+0 duplicate `(measure_id, reading_time)` keys, partition expiry 90 days
+(`expirationMs=7776000000`).
+
+**US vs EU snapshot drift is expected** (live API): measures 7,436 → 7,438,
+flood_warnings 1 → 114, readings 5,404 → 5,376; stations equal at 5,537.
+
+**New root causes found during rehearsal:**
+1. dlt restored schema state from `~/.dlt` and assumed `run_metadata` existed, so
+   the load used `CREATE_NEVER` and 404'd in the new dataset. Reset state fixes it
+   (also why BigQuery never had `run_metadata`). Decision D-010.
+2. dlt omitted all-NULL columns (`readings.qualifier`, `flood_warnings.situation`),
+   breaking staging. Fixed with explicit `TABLE_COLUMNS` + regression test. Decision D-009.
