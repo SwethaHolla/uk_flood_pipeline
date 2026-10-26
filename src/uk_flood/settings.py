@@ -34,7 +34,7 @@ def load_dotenv(path: str | Path | None = None) -> None:
 class Settings:
     # GCP / BigQuery
     gcp_project_id: str = field(default_factory=lambda: _env("GCP_PROJECT_ID", "ukfloodpipeline"))
-    bq_location: str = field(default_factory=lambda: _env("BQ_LOCATION", "US"))
+    bq_location: str = field(default_factory=lambda: _env("BQ_LOCATION", "europe-west2"))
     bq_raw_dataset: str = field(default_factory=lambda: _env("BQ_RAW_DATASET", "uk_flood_raw"))
     max_bytes_billed: int = field(
         default_factory=lambda: _env_int("MAX_BYTES_BILLED", 10 * 1024**3)

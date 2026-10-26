@@ -44,7 +44,7 @@ with DAG(
         env={
             "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
             "BQ_RAW_DATASET": os.environ.get("BQ_RAW_DATASET", "uk_flood_raw"),
-            "BQ_LOCATION": os.environ.get("BQ_LOCATION", "US"),
+            "BQ_LOCATION": os.environ.get("BQ_LOCATION", "europe-west2"),
             "GOOGLE_APPLICATION_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""),
             "GOOGLE_CLOUD_PROJECT": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
         },
@@ -56,7 +56,7 @@ with DAG(
         env={
             "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
             "BQ_DBT_SCHEMA": os.environ.get("BQ_DBT_SCHEMA", "uk_flood"),
-            "BQ_LOCATION": os.environ.get("BQ_LOCATION", "US"),
+            "BQ_LOCATION": os.environ.get("BQ_LOCATION", "europe-west2"),
             "GOOGLE_APPLICATION_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""),
             "DBT_PROFILES_DIR": DBT_DIR,
         },
@@ -68,7 +68,7 @@ with DAG(
         env={
             "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
             "BQ_DBT_SCHEMA": os.environ.get("BQ_DBT_SCHEMA", "uk_flood"),
-            "BQ_LOCATION": os.environ.get("BQ_LOCATION", "US"),
+            "BQ_LOCATION": os.environ.get("BQ_LOCATION", "europe-west2"),
             "GOOGLE_APPLICATION_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""),
         },
     )

@@ -5,16 +5,17 @@ section. Every entry states the evidence it rests on.
 
 ---
 
-## D-001: BigQuery location — US (current) vs europe-west2 (target)
+## D-001: BigQuery location — migrated to europe-west2 (EXECUTED)
 
-- **Status:** OPEN — GATE.
-- **Context:** all datasets (`uk_flood`, `uk_flood_raw`, `uk_flood_core`,
-  `uk_flood_marts`, `uk_flood_staging`, `uk_flood_raw_staging`) are in the **US**
-  multi-region. The earlier recorded intent was **europe-west2**.
-- **Constraint:** BigQuery dataset location is immutable after creation.
-- **Decision:** migrate by recreating datasets in europe-west2 and reloading.
-  Data is tiny (~7.5k rows/dataset, ~3.3 MB total), so recreate+reload is cheap.
-- **Not done yet:** no dataset created/dropped/moved. Waits for explicit approval.
+- **Status:** done (2026-10-26).
+- **Constraint:** BigQuery dataset IDs are unique per project, so the same names
+  cannot coexist in US and europe-west2.
+- **Executed:** rehearsed in temporary `*_euw2` datasets (row counts, dbt build,
+  Elementary all verified), then dropped the US datasets and recreated the canonical
+  names in europe-west2; the temp datasets were removed after verification.
+- **Evidence:** every canonical dataset reports `location=europe-west2`. Raw
+  `readings` = 15,429,146 rows (2021-11-01 → 2026-10-26, 4.34 GB); `fct_readings` =
+  14,249,498 rows (90-day partition expiry); 0 duplicate keys.
 
 ## D-002: Airflow 3 upgrade — DEFERRED
 
@@ -54,6 +55,12 @@ section. Every entry states the evidence it rests on.
   `dbt test -s tag:elementary` repeatedly until the training window is populated →
   only then claim baselines. Until then, anomaly results must be marked
   **unverified** (thin/empty training sets pass trivially).
+- **Observed post-backfill (2026-10-26):** the first `dbt build --full-refresh`
+  after the 15.4M-row seed fired an Elementary `column_anomalies` test on
+  `fct_readings.reading_value` min/max (historical range −4,259.8 to ~2.0e7; null
+  rate 0%). A second `dbt build` passed 85 PASS / 1 WARN / 0 ERROR. Rule: after any
+  backfill or full-refresh, run dbt twice (or use `elementary backfill`) before
+  treating an anomaly as a regression.
 
 ## D-005: Data-quality WARN on `stg_measures.unit_name` is expected
 
@@ -87,12 +94,16 @@ section. Every entry states the evidence it rests on.
 
 ## D-008: Raw retention requires a post-load rebuild (dlt limitation)
 
-- **Status:** decided.
+- **Status:** fct retention done; raw retention OPEN (conflicts with full-archive seed).
 - **Evidence:** raw `readings` is unpartitioned and `dlt`'s BigQuery config exposes
   no partition-expiration option.
-- **Decision:** `fct_readings` uses dbt `partition_expiration_days=90`; raw `readings`
-  is rebuilt partitioned (`scripts/apply_retention.py`, dry-run first) as part of the
-  migration, then dlt continues merging into the partitioned table.
+- **Done:** `fct_readings` uses dbt `partition_expiration_days=90`; after the full
+  refresh it holds 14,249,498 rows (2026-07-28 → 2026-10-26).
+- **Open:** raw `readings` now holds the full archive (15,429,146 rows,
+  2021-11-01 → 2026-10-26, 4.34 GB). Applying the approved 90-day expiry
+  (`scripts/apply_retention.py`) would partition-rebuild it and delete ~1.18M
+  pre-90-day rows. Storage cost of keeping it is ~$0.09/month, so the trade-off
+  needs an explicit call: keep the archive in raw (recommended) or enforce 90 days.
 
 ## D-009: Every contract table gets explicit dlt column hints
 

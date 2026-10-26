@@ -16,7 +16,7 @@ x-airflow-common: &airflow-common
     GCP_PROJECT_ID: ${GCP_PROJECT_ID:-ukfloodpipeline}
     BQ_RAW_DATASET: ${BQ_RAW_DATASET:-uk_flood_raw}
     BQ_DBT_SCHEMA: ${BQ_DBT_SCHEMA:-uk_flood}
-    BQ_LOCATION: ${BQ_LOCATION:-US}
+    BQ_LOCATION: ${BQ_LOCATION:-europe-west2}
     MAX_BYTES_BILLED: ${MAX_BYTES_BILLED:-10737418240}
     EA_API_BASE_URL: ${EA_API_BASE_URL:-https://environment.data.gov.uk/flood-monitoring}
     GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}

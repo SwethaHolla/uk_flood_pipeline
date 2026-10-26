@@ -121,7 +121,7 @@ gcloud auth application-default login
 
 # Set environment
 export GCP_PROJECT_ID=ukfloodpipeline
-export BQ_LOCATION=US
+export BQ_LOCATION=europe-west2
 export BQ_RAW_DATASET=uk_flood_raw
 export BQ_DBT_SCHEMA=uk_flood
 # Auth: use ADC or service-account impersonation — no downloaded key files.

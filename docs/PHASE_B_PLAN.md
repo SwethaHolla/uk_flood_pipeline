@@ -310,3 +310,21 @@ flood_warnings 1 → 114, readings 5,404 → 5,376; stations equal at 5,537.
    (also why BigQuery never had `run_metadata`). Decision D-010.
 2. dlt omitted all-NULL columns (`readings.qualifier`, `flood_warnings.situation`),
    breaking staging. Fixed with explicit `TABLE_COLUMNS` + regression test. Decision D-009.
+
+## 12. Full migration + full-archive seed (executed 2026-10-26)
+
+- US datasets dropped; canonical names recreated in `europe-west2`; temp `*_euw2`
+  datasets removed after verification.
+- Full seed (no client-side filter): **5,376/5,376 measures, 0 failures**,
+  **15,429,146 rows**, median 28 days, max 1,820 days, **0 duplicate keys**.
+- Raw `readings`: 2021-11-01 → 2026-10-26, 4.34 GB, unpartitioned (retention pending).
+- `dbt build --full-refresh`: first run fired an expected post-backfill Elementary
+  anomaly; second run **85 PASS / 1 WARN / 0 ERROR / 0 SKIP**.
+- `fct_readings`: **14,249,498 rows**, 5,376 measures, 2026-07-28 → 2026-10-26,
+  **0 duplicate keys** (90-day partition expiry already trimmed older partitions).
+- Idempotency re-run of 100 measures: **0 duplicate keys**; +689 rows were genuinely
+  new readings arriving after the seed's max timestamp.
+- Marts built: station reliability 5,537; river-level trends 2,581,156;
+  rainfall trends 620,229.
+- Defaults changed from `US` to `europe-west2` in settings, dbt profile, DAG and
+  docker-compose so a missing env var cannot silently target the wrong region.

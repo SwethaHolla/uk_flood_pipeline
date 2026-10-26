@@ -6,7 +6,7 @@ uk_flood:
       method: "{{ env_var('BQ_AUTH_METHOD', 'oauth') }}"
       project: "{{ env_var('GCP_PROJECT_ID', 'ukfloodpipeline') }}"
       dataset: "{{ env_var('BQ_DBT_SCHEMA', 'uk_flood') }}"
-      location: "{{ env_var('BQ_LOCATION', 'US') }}"
+      location: "{{ env_var('BQ_LOCATION', 'europe-west2') }}"
       threads: 4
       maximum_bytes_billed: "{{ env_var('MAX_BYTES_BILLED', '10737418240') | int }}"
       keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS', '') }}"
