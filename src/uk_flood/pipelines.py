@@ -99,6 +99,62 @@ QUARANTINE_COLUMNS: dict[str, dict[str, str]] = {
     "failed_at": {"data_type": "timestamp"},
 }
 
+# Explicit column types for every contract table. Without these dlt infers
+# types from the batch and silently omits columns that are all-NULL on a given
+# load (observed: `qualifier` on readings, `situation` on flood_warnings),
+# which then breaks staging models with "Unrecognized name".
+TABLE_COLUMNS: dict[str, dict[str, dict[str, str]]] = {
+    "stations": {
+        "id": {"data_type": "text"},
+        "station_reference": {"data_type": "text"},
+        "label": {"data_type": "text"},
+        "town": {"data_type": "text"},
+        "river_name": {"data_type": "text"},
+        "catchment_name": {"data_type": "text"},
+        "rloi_id": {"data_type": "bigint"},
+        "status": {"data_type": "text"},
+        "lat": {"data_type": "double"},
+        "long": {"data_type": "double"},
+        "easting": {"data_type": "double"},
+        "northing": {"data_type": "double"},
+        "date_opened": {"data_type": "text"},
+    },
+    "measures": {
+        "id": {"data_type": "text"},
+        "label": {"data_type": "text"},
+        "unit": {"data_type": "text"},
+        "unit_name": {"data_type": "text"},
+        "datum_type": {"data_type": "text"},
+        "qualifier": {"data_type": "text"},
+        "period": {"data_type": "bigint"},
+        "notation": {"data_type": "text"},
+        "latest_reading_value": {"data_type": "double"},
+        "latest_reading_datetime": {"data_type": "timestamp"},
+        "latest_reading_is_list": {"data_type": "bool"},
+        "latest_reading_missing": {"data_type": "bool"},
+    },
+    "flood_warnings": {
+        "id": {"data_type": "text"},
+        "severity": {"data_type": "text"},
+        "severity_level": {"data_type": "bigint"},
+        "situation": {"data_type": "text"},
+        "time_raised": {"data_type": "timestamp"},
+        "flood_area_id": {"data_type": "text"},
+        "flood_area_label": {"data_type": "text"},
+        "flood_area_description": {"data_type": "text"},
+    },
+    "readings_latest": {
+        "id": {"data_type": "text"},
+        "measure": {"data_type": "text"},
+        "datetime": {"data_type": "timestamp"},
+        "value_raw": {"data_type": "double"},
+        "value_is_list": {"data_type": "bool"},
+        "value_missing": {"data_type": "bool"},
+        "qualifier": {"data_type": "text"},
+    },
+}
+TABLE_COLUMNS["readings"] = TABLE_COLUMNS["readings_latest"]
+
 
 @dataclass
 class ResourceResult:
@@ -254,6 +310,7 @@ def run_ingestion(
                             name=spec["table"],
                             write_disposition="merge",
                             primary_key=spec["primary_keys"],
+                            columns=TABLE_COLUMNS.get(spec["table"]),
                         )
                     )
                     if name == "readings_latest":
@@ -266,6 +323,7 @@ def run_ingestion(
                                 name="readings",
                                 write_disposition="merge",
                                 primary_key=READING_HISTORY_SPEC["primary_keys"],
+                                columns=TABLE_COLUMNS["readings"],
                             )
                         )
                 result.rows_loaded = len(valid)

@@ -93,3 +93,25 @@ section. Every entry states the evidence it rests on.
 - **Decision:** `fct_readings` uses dbt `partition_expiration_days=90`; raw `readings`
   is rebuilt partitioned (`scripts/apply_retention.py`, dry-run first) as part of the
   migration, then dlt continues merging into the partitioned table.
+
+## D-009: Every contract table gets explicit dlt column hints
+
+- **Status:** decided (fix implemented).
+- **Evidence:** a live reload into a fresh BigQuery dataset dropped all-NULL
+  columns (`readings.qualifier`, `flood_warnings.situation`); dbt then failed with
+  `Unrecognized name`. The same class of bug explains why `run_metadata` never
+  existed in BigQuery.
+- **Decision:** declare `data_type` for every contract field in `TABLE_COLUMNS`
+  (nested `stations.measures` excluded — dlt unnests it). `tests/test_column_hints.py`
+  asserts every contract field has a hint, so future contract additions cannot
+  silently drop a column.
+
+## D-010: Reset global dlt state when the destination dataset changes
+
+- **Status:** decided.
+- **Evidence:** after repointing dlt at the new `_euw2` dataset, dlt's restored
+  schema said `run_metadata` existed and issued a load with `CREATE_NEVER`, which
+  failed 404 because the table did not exist in the new dataset. dlt state lives in
+  `~/.dlt/pipelines/uk_flood_raw`, not the repo.
+- **Decision:** any dataset/location move must delete `~/.dlt/pipelines/uk_flood_raw`
+  (and project-local `.dlt` if present) and reload; never reuse state across datasets.
