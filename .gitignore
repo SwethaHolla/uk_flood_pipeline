@@ -21,6 +21,7 @@ uv.lock.bak
 *.json
 !mock_api/fixtures/*.json
 !dbt/**/*.json
+!docs/artifacts/*.json
 !.github/**/*.yml
 
 # GCP / dbt
@@ -53,3 +54,4 @@ Thumbs.db
 data/tmp/
 *.csv
 !mock_api/fixtures/*.csv
+!docs/artifacts/*.csv

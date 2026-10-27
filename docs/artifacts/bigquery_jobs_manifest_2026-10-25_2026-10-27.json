@@ -1,0 +1,321 @@
+{
+  "generated_at": "2026-10-27T00:52:32.732193+00:00",
+  "window_utc": {
+    "start": "2026-10-25 00:00:00+00",
+    "end": "2026-10-28 00:00:00+00"
+  },
+  "regions": [
+    "region-europe-west2",
+    "region-US"
+  ],
+  "row_count": 2370,
+  "total_bytes_billed": 444729393152,
+  "total_slot_ms": 9925286,
+  "categories": {
+    "ctas": {
+      "jobs": 81,
+      "bytes_billed": 1883242496
+    },
+    "dbt": {
+      "jobs": 715,
+      "bytes_billed": 4631560192
+    },
+    "dlt_delete": {
+      "jobs": 82,
+      "bytes_billed": 172222316544
+    },
+    "dlt_insert": {
+      "jobs": 86,
+      "bytes_billed": 4630511616
+    },
+    "merge": {
+      "jobs": 47,
+      "bytes_billed": 11016339456
+    },
+    "other": {
+      "jobs": 116,
+      "bytes_billed": 188743680
+    },
+    "script": {
+      "jobs": 119,
+      "bytes_billed": 177901404160
+    },
+    "seed_script": {
+      "jobs": 412,
+      "bytes_billed": 41943040
+    },
+    "select": {
+      "jobs": 712,
+      "bytes_billed": 72213331968
+    }
+  },
+  "sanitization": {
+    "project_id": "PROJECT",
+    "project_number": "PROJECT_NUMBER",
+    "billing_account": "BILLING_ACCOUNT",
+    "user_email": "USER",
+    "key_file": "KEY_FILE"
+  },
+  "files": {
+    "details_csv": "bigquery_jobs_2026-10-25_2026-10-27.csv",
+    "details_jsonl_gz": "bigquery_jobs_2026-10-25_2026-10-27.jsonl.gz",
+    "summary_csv": "bigquery_jobs_summary_2026-10-25_2026-10-27.csv"
+  },
+  "notes": [
+    "The CSV is the compact job index (no SQL text); the .jsonl.gz file is the authoritative export with full sanitized query text.",
+    "Parent SCRIPT jobs and their child statement jobs both appear in BigQuery INFORMATION_SCHEMA; do not add a parent SCRIPT total to its child DELETE/INSERT totals.",
+    "Joins use fully-qualified tables; project identifiers were replaced with PROJECT."
+  ],
+  "top_jobs_by_bytes": [
+    {
+      "region": "europe-west2",
+      "job_id": "42dcc5b6-7cd2-4e6e-81be-c50aefcfbec8",
+      "creation_time": "2026-10-26T23:35:06.146000+00:00",
+      "statement_type": "MERGE",
+      "category": "merge",
+      "table_id": "fct_readings",
+      "total_bytes_billed": 5246025728,
+      "total_slot_ms": 44919
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "34ce062b-01c2-4186-8f19-fd37bcf5d91b",
+      "creation_time": "2026-10-26T23:39:31.962000+00:00",
+      "statement_type": "MERGE",
+      "category": "merge",
+      "table_id": "fct_readings",
+      "total_bytes_billed": 5246025728,
+      "total_slot_ms": 36813
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_HeHo69EqmBvExO8R8HI7vJhwSvEM",
+      "creation_time": "2026-10-26T23:37:36.499000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4414504960,
+      "total_slot_ms": 41066
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_RnVQgplhNZdLvBep95tSQRBhx02G",
+      "creation_time": "2026-10-26T23:38:11.260000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4380950528,
+      "total_slot_ms": 36897
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_2c93124fe20015e8a0955b9cd8f51b52_0",
+      "creation_time": "2026-10-26T23:37:36.607000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4358930432,
+      "total_slot_ms": 33215
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_da2b88c8e2aa1538d13d6634fdb779b6_0",
+      "creation_time": "2026-10-26T23:38:11.354000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4349493248,
+      "total_slot_ms": 30008
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_4IIjPRNBa660_qjNyhP5aExySrE1",
+      "creation_time": "2026-10-26T23:31:03.848000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4347396096,
+      "total_slot_ms": 27397
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_Du1bpnozX2e9o1hqKl9YrQ7njrdI",
+      "creation_time": "2026-10-26T23:30:31.860000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4334813184,
+      "total_slot_ms": 35407
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_41afa68fc4e1d9e80a1a59b54b946356_0",
+      "creation_time": "2026-10-26T23:31:04.049000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4322230272,
+      "total_slot_ms": 21315
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_fTp9BYH32KVqgA1pHEQDIgPfllRU",
+      "creation_time": "2026-10-26T23:29:36.688000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4278190080,
+      "total_slot_ms": 29616
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_21bbe504e70ec10bea37a62ec7653a7f_0",
+      "creation_time": "2026-10-26T23:30:31.948000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4278190080,
+      "total_slot_ms": 28592
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_aGc_99ZbJPw7chNYh04z-A-Lj7Ys",
+      "creation_time": "2026-10-26T23:28:46.819000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4222615552,
+      "total_slot_ms": 32750
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_9d886e70d71463e1d35ece9bff8e2fd8_0",
+      "creation_time": "2026-10-26T23:29:36.782000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4222615552,
+      "total_slot_ms": 23538
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_2z-uDzi9jvSqo6nVWS62h3gSI3-b",
+      "creation_time": "2026-10-26T23:27:52.788000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4168089600,
+      "total_slot_ms": 33004
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_6ee6d8d9f1ada3fe805bbf9dfa419fe7_0",
+      "creation_time": "2026-10-26T23:28:46.915000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4167041024,
+      "total_slot_ms": 26121
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_xxsW0bcaE9dJLIp6KVfxJS-ldOl1",
+      "creation_time": "2026-10-26T23:27:01.247000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4112515072,
+      "total_slot_ms": 33362
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_c9770c8694bd475431bc46ba6de14219_0",
+      "creation_time": "2026-10-26T23:27:52.885000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4111466496,
+      "total_slot_ms": 27688
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_3vKiTV5sojp50hQU4iOWh8zNTozS",
+      "creation_time": "2026-10-26T23:26:05.764000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 4057989120,
+      "total_slot_ms": 29732
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_20a442ecc768838362a2104857b87b85_0",
+      "creation_time": "2026-10-26T23:27:01.339000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 4055891968,
+      "total_slot_ms": 26684
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_a6be5865a3546b0c7fe6efa619fed91d_0",
+      "creation_time": "2026-10-26T23:26:05.856000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 3997171712,
+      "total_slot_ms": 24023
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_-zvHA5dJoMT96-gJ7e1TDJkyOBg0",
+      "creation_time": "2026-10-26T23:25:10.271000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 3996123136,
+      "total_slot_ms": 31376
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "job_1RiuJsm3cg37u-ip4ow2ewQJlNf2",
+      "creation_time": "2026-10-26T23:24:14.975000+00:00",
+      "statement_type": "SCRIPT",
+      "category": "script",
+      "table_id": null,
+      "total_bytes_billed": 3946840064,
+      "total_slot_ms": 39839
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_a97d0a96262f3f09c2a52791bc54e260_0",
+      "creation_time": "2026-10-26T23:25:10.351000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 3939500032,
+      "total_slot_ms": 23830
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "bqjob_r5f2430fc22ec2142_000001a17acf0475_1",
+      "creation_time": "2026-10-27T00:42:31.126000+00:00",
+      "statement_type": "SELECT",
+      "category": "select",
+      "table_id": "anonff7825a44c4b0b3905f47294a747d4ef0d41e4ced91d4586645b27c4b46ce1ca",
+      "total_bytes_billed": 3906994176,
+      "total_slot_ms": 15804
+    },
+    {
+      "region": "europe-west2",
+      "job_id": "script_job_0f31ce5b3763128ff1eaf73545c1652b_0",
+      "creation_time": "2026-10-26T23:24:15.087000+00:00",
+      "statement_type": "DELETE",
+      "category": "dlt_delete",
+      "table_id": "readings",
+      "total_bytes_billed": 3870294016,
+      "total_slot_ms": 31467
+    }
+  ]
+}
