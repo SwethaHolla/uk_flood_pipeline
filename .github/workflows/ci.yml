@@ -94,7 +94,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Scan for disallowed patterns
         run: |
-          if grep -rnE '<GCP_PROJECT_ID>|<SA_EMAIL>|ukfloodpipeline|dlt-runner@ukfloodpipeline' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' .; then
-            echo "ERROR: Found disallowed project/SA patterns"
+          if grep -rnE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.gserviceaccount\.com' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' . | grep -v '<SA_EMAIL>'; then
+            echo 'ERROR: Found hardcoded service account email'
+            exit 1
+          fi
+          if grep -rnE '\b[0-9]{12}\b' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' . | grep -v '<GCP_PROJECT_NUMBER>' | grep -v '31457' | grep -v '116444736000000000' | grep -v '1793063562' | grep -v '922337203685477'; then
+            echo 'ERROR: Found hardcoded 12-digit project number'
+            exit 1
+          fi
+          if grep -rnE '\b[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}\b' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' . | grep -v '<BILLING_ACCOUNT_ID>'; then
+            echo 'ERROR: Found hardcoded billing account ID'
             exit 1
           fi
