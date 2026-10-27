@@ -4,7 +4,7 @@ SHELL := bash
 UV := uv
 PYTHON := $(UV) run python
 
-.PHONY: help setup sync up down restart logs ingest seed-history dbt-deps dbt-build dbt-test \
+.PHONY: help setup sync up down restart logs ingest seed-history dbt-deps dbt-build dbt-test dbt-test-full \
         elementary-report test coverage lint fmt sqlfluff pre-commit-install pre-commit ci chaos benchmark clean
 
 help: ## Show available targets
@@ -47,8 +47,11 @@ dbt-build-local: ## Run the full dbt build against the local duckdb warehouse
 	DUCKDB_PATH=data/uk_flood.duckdb DBT_SOURCE_DATABASE=uk_flood \
 		$(UV) run dbt build --profiles-dir dbt --project-dir dbt --target local
 
-dbt-test: ## Run dbt tests only
+dbt-test: ## Run dbt tests scoped to recent partitions
 	$(UV) run dbt test --profiles-dir dbt --project-dir dbt
+
+dbt-test-full: ## Run dbt tests over full history (weekly, expensive)
+	$(UV) run dbt test --profiles-dir dbt --project-dir dbt --vars '{test_lookback_days: 100000}'
 
 elementary-report: ## Generate the Elementary HTML report
 	$(UV) run elementary generate-report --profiles-dir dbt --project-dir dbt

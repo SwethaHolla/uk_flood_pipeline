@@ -6,5 +6,8 @@ select
     measure_id,
     reading_time
 from {{ ref('stg_readings') }}
-where reading_time < timestamp '2000-01-01'
-   or reading_time > {{ dbt.current_timestamp() }} + interval 1 day
+where reading_time >= {{ test_lookback_timestamp_start() }}
+  and (
+      reading_time < timestamp '2000-01-01'
+      or reading_time > {{ dbt.current_timestamp() }} + interval 1 day
+  )
