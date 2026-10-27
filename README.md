@@ -57,7 +57,16 @@ EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →
 | Offline tests | **38 passed** (100%) |
 | Linting (ruff + sqlfluff) | **Clean** |
 
-### Performance (BigQuery, on-demand $5/TB)
+### Performance (BigQuery) — **UNVERIFIED / superseded**
+
+> These numbers are retained for reference only and are **not evidence**. They were
+> produced by a single un-repeated run, every query was billed at BigQuery's 10 MB
+> minimum-per-table floor, and the rate used ($5/TB) was wrong. Official on-demand
+> pricing is **$6.25 per TiB** (first 1 TiB/month free, 10 MB minimum per table +
+> query). The rigorous, repeatable benchmark is regenerated in Phase F and will
+> report N>=5 runs, median + p95, dry-run byte pruning, and `INFORMATION_SCHEMA.JOBS`
+> slot usage.
+
 | Query | Time | Bytes Billed | Est. Cost |
 | --- | --- | --- | --- |
 | Daily readings (7 days) | 1.83s | 10.49 MB | $0.000048 |
@@ -68,7 +77,13 @@ EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →
 
 *Optimizations:* `fct_readings` partitioned by `reading_date` (DAY), clustered by `measure_id`, incremental (MERGE on BigQuery / DELETE+INSERT on DuckDB).
 
-### Resilience (Chaos Testing)
+### Resilience (Chaos Testing) — **UNVERIFIED / superseded**
+
+> This table is **not evidence**: the harness that produced it recorded a connection
+> refusal as "Handled" (a reporting bug, now fixed in Phase B) and the scenarios were
+> run offline. Chaos v2 (schema drift, type change, duplicates, late/out-of-order,
+> empty, partial payload, quarantine flood) is regenerated in Phase E.
+
 | Scenario | Expected Behavior | Status |
 | --- | --- | --- |
 | API Timeout | Retry with exponential backoff | **Handled** |
@@ -106,10 +121,12 @@ gcloud auth application-default login
 
 # Set environment
 export GCP_PROJECT_ID=ukfloodpipeline
-export BQ_LOCATION=US
+export BQ_LOCATION=europe-west2
 export BQ_RAW_DATASET=uk_flood_raw
 export BQ_DBT_SCHEMA=uk_flood
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+# Auth: use ADC or service-account impersonation — no downloaded key files.
+#   gcloud auth application-default login
+#   (optional) export GCP_IMPERSONATE_SA=dlt-runner@ukfloodpipeline.iam.gserviceaccount.com
 
 # Ingest from EA API
 make ingest

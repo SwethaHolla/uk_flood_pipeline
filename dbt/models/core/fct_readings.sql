@@ -10,6 +10,7 @@
             incremental_strategy='merge',
             unique_key=['measure_id', 'reading_time'],
             partition_by={'field': 'reading_date', 'data_type': 'date'},
+            partition_expiration_days=90,
             cluster_by=['measure_id']
         )
     }}
