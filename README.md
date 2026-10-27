@@ -178,7 +178,7 @@ docs/                # PRD, DECISIONS, NEXT_STEPS, chaos-results, benchmarks
 
 **Marts:** `mart_station_reliability` (completeness/freshness), `mart_river_level_trends`, `mart_rainfall_trends`, `mart_flood_warning_history`
 
-**Data quality:** Schema tests (unique/not_null/relationships/accepted_values) + singular tests (`assert_no_future_readings`, `assert_no_duplicate_reading_keys`, `assert_list_values_always_have_raw`, `assert_bridge_measures_resolve`)
+**Data quality:** Schema tests (unique/not_null/relationships/accepted_values) + singular tests (`assert_reading_time_plausible`, `assert_no_duplicate_reading_keys`, `assert_list_values_always_have_raw`, `assert_bridge_measures_resolve`)
 
 ## Key features
 
