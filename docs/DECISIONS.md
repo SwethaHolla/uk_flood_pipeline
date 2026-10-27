@@ -92,18 +92,18 @@ section. Every entry states the evidence it rests on.
   null-latest measures and retains stale-but-partial ones. This fixes the root cause
   of `readings` containing only the latest snapshot.
 
-## D-008: Raw retention requires a post-load rebuild (dlt limitation)
+## D-008: Raw archive is kept; fct retention is 90 days
 
-- **Status:** fct retention done; raw retention OPEN (conflicts with full-archive seed).
+- **Status:** decided (2026-10-26) — raw expiry NOT applied.
 - **Evidence:** raw `readings` is unpartitioned and `dlt`'s BigQuery config exposes
-  no partition-expiration option.
-- **Done:** `fct_readings` uses dbt `partition_expiration_days=90`; after the full
-  refresh it holds 14,249,498 rows (2026-07-28 → 2026-10-26).
-- **Open:** raw `readings` now holds the full archive (15,429,146 rows,
-  2021-11-01 → 2026-10-26, 4.34 GB). Applying the approved 90-day expiry
-  (`scripts/apply_retention.py`) would partition-rebuild it and delete ~1.18M
-  pre-90-day rows. Storage cost of keeping it is ~$0.09/month, so the trade-off
-  needs an explicit call: keep the archive in raw (recommended) or enforce 90 days.
+  no partition-expiration option. After the full seed it holds **15,429,146 rows**
+  (2021-11-01 → 2026-10-26, **4.34 GB**, ~$0.09/month).
+- **Decision:** keep the full raw archive (explicit user choice, supersedes the
+  earlier 90-day raw-expiry plan). `fct_readings` keeps
+  `partition_expiration_days=90` (14,249,498 rows, 2026-07-28 → 2026-10-26) so the
+  marts and query costs stay bounded.
+- **Utility:** `scripts/apply_retention.py` remains available (dry-run first) if the
+  archive ever needs trimming; it is not part of the normal run path.
 
 ## D-009: Every contract table gets explicit dlt column hints
 

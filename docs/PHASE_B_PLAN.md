@@ -328,3 +328,5 @@ flood_warnings 1 → 114, readings 5,404 → 5,376; stations equal at 5,537.
   rainfall trends 620,229.
 - Defaults changed from `US` to `europe-west2` in settings, dbt profile, DAG and
   docker-compose so a missing env var cannot silently target the wrong region.
+- **Retention decision (2026-10-26):** keep the full raw archive (no raw expiry);
+  `fct_readings` remains 90-day. `scripts/apply_retention.py` is retained but not run.
