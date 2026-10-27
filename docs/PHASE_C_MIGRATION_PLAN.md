@@ -25,7 +25,7 @@ Measured on 2026-10-25..27, not extrapolated:
 | dbt `fct_readings` merge `42dcc5b6-7cd2-4e6e-81be-c50aefcfbec8` | 5,246,025,728 (4.89 GiB) |
 | dbt `fct_readings` merge `34ce062b-01c2-4186-8f19-fd37bcf5d91b` | 5,246,025,728 |
 
-The old 8.3 GB/run number was extrapolated and double-counted the dlt SCRIPT and its child DELETE. The measured proxy is **~9.0 GiB per run** (4.11 dlt merge + 4.89 dbt merge), or **~864 GiB/day at 96 runs/day** (~28.8x the 30 GiB/day line). At one-year raw size (~55 GB), the same unpinned merges scale to roughly 130 GB/run and 12.5 TB/day. This is why Airflow is off. The Phase C analysis day itself used **30.98 GiB** (121 query jobs, 2026-10-27), about 1 GiB over the documented daily line; no further BigQuery queries should run until the daily reset or explicit approval.
+The old 8.3 GB/run number was extrapolated and double-counted the dlt SCRIPT and its child DELETE. The measured proxy is **~9.0 GiB per run** (4.11 dlt merge + 4.89 dbt merge), or **~864 GiB/day at 96 runs/day** (~28x the **30.72 GiB/day** quota, 31,457 MiB). At one-year raw size (~55 GB), the same unpinned merges scale to roughly 130 GB/run and 12.5 TB/day. This is why Airflow is off. The Phase C analysis day itself used **30.98 GiB** (121 query jobs, 2026-10-27), about **0.26 GiB** over the confirmed quota; the quota resets at **midnight America/Los_Angeles** (not UTC). No further BigQuery queries should run until the enforcement test is confirmed and the quota has reset.
 
 ## Target shape
 
@@ -117,9 +117,9 @@ Raw growth is ~490,623 rows/day, ~0.14 GB/day at 281 B/row; 3 days of raw is ~0.
 | hourly | 24 | ~10-12 GB/day | load jobs | Yes, if tests stay small |
 | hourly, 2 partitions | 24 | ~7-8 GB/day | load jobs | Yes, more margin |
 
-These are models, not measurements. The plan is to measure the hourly / 3-partition path first; if tests push it over 15 GiB/day, reduce to 2 partitions or move the fct cadence to 2 hours. The 30 GiB/day documented quota is not a target; the target is 15 GiB/day.
+These are models, not measurements. The plan is to measure the hourly / 3-partition path first; if tests push it over 15 GiB/day, reduce to 2 partitions or move the fct cadence to 2 hours. The **30.72 GiB/day** quota (31,457 MiB) is not a target; the target is 15 GiB/day.
 
-Test scoping is already implemented: daily tests use a 3-day lookback; `make dbt-test-full` runs the full archive weekly. The `stg_readings` filters do not prune today because raw is unpartitioned; they should prune after this migration.
+Test scoping is already implemented: daily tests use a 3-day lookback; `make dbt-test-full` runs the full archive weekly. The `stg_readings` filters do not prune today because raw is unpartitioned; they should prune after this migration. The weekly full suite is therefore **held as a fallback (D-012)** until it is re-measured here. Daily allocations against the 31,457 MiB quota are recorded in D-011; they are proposed caps, not measurements.
 
 ## Risks and checks
 

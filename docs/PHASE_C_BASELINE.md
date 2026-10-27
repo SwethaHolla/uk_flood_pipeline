@@ -36,7 +36,7 @@ Therefore:
 
 - Measured dlt merge proxy: **~4.11 GiB per run** (use the SCRIPT total, not SCRIPT + child).
 - Measured full ingest + dbt proxy: **~9.0 GiB per run** (4.11 + 4.89).
-- At 96 runs/day: **~864 GiB/day** for the combined proxy, **~28.8x** the 30 GiB/day line. The budget conclusion is unchanged; the earlier 8.3 GB figure understated the combined run and overstated the dlt-only run.
+- At 96 runs/day: **~864 GiB/day** for the combined proxy, **~28x** the **30.72 GiB/day** quota (31,457 MiB). The budget conclusion is unchanged; the earlier 8.3 GB figure understated the combined run and overstated the dlt-only run.
 - At one-year raw size (~55 GB), a non-pruned dlt merge plus dbt merge is on the order of **~130 GB/run**, or **~12.5 TB/day**; this is why the append-only + partition-pruned design is required before Airflow starts.
 
 ## Job totals in the export
@@ -67,7 +67,7 @@ The Phase C analysis day (unit distributions, extreme values, `fct_readings` ful
 | `US` | 3 | 62,914,560 | 0.06 | 4,012 |
 | **Total** | **121** | **33,258,733,568** | **30.98** | **9,908,946** |
 
-This is about **1 GiB above** the documented 30 GiB/day line. No quota error was raised, and the job record is complete. Further BigQuery queries should wait for the daily reset or explicit approval. This measurement also confirms that analysis work alone can consume the daily line; it is not a pipeline run.
+This is about **0.26 GiB above** the confirmed **30.72 GiB/day** quota (31,457 MiB). The quota day resets at **midnight America/Los_Angeles**, not UTC (07:00 London now; 08:00 London after 1 Nov). No quota error was observed, and the job record is complete. Further BigQuery queries must wait for the enforcement test confirmation and the daily reset or explicit approval. This measurement also confirms that analysis work alone can consume the daily quota; it is not a pipeline run.
 
 ## Measured dbt cost per test
 

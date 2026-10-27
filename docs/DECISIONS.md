@@ -31,15 +31,28 @@ section. Every entry states the evidence it rests on.
 
 ## D-003: Elementary upgrade — compatibility check required, before baselines
 
-- **Status:** decided (sequence).
-- **Evidence:** the **python** package in `.venv` is already `elementary-data 0.26.1`,
-  but the **dbt package** is pinned `elementary-data/elementary [">=0.13.0","<0.17.0"]`
-  (locked `0.16.4`). These are different artefacts.
-- **Rationale:** upgrade only after confirming dbt-core compatibility
-  (`0.16.4` works with dbt-core 1.9.x), and **before** any baselines are
-  established, so a package change cannot invalidate accumulated anomaly metric
-  history. Bump `packages.yml` + `package-lock.yml` in an isolated commit and
-  re-run `dbt deps`/`dbt parse`.
+- **Status:** checked locally 2026-10-27; still open before baselines.
+- **Evidence:** the **Python CLI** in `.venv` is `elementary-data 0.26.1`; the
+  **dbt package** is pinned `elementary-data/elementary [">=0.13.0","<0.17.0"]`
+  (locked `0.16.4`). dbt-core is `1.9.11`. The dbt package declares
+  `require-dbt-version: [">=1.0.0", "<2.0.0"]`; the CLI metadata requires
+  `dbt-core >=1.8,<2.0.0` when a dbt extra is installed. Both accept dbt-core
+  1.9.11.
+- **Local finding:** the 0.26.1 CLI's entry point is `edr`, not `elementary`.
+  The Makefile target was calling `uv run elementary generate-report`, which
+  cannot spawn. It now calls `uv run edr report --profiles-dir dbt
+  --project-dir dbt`. This is a command fix only; no warehouse was queried.
+- **Unresolved:** CLI 0.26.1 and dbt package 0.16.4 are not the same
+  generation. The dbt package README and models are still 0.16.4-era; a 0.26.x
+  CLI report may not fully understand their tables. Version alignment is not
+  proven.
+- **Rationale/next:** align the pair **before** any baselines are established,
+  so a package change cannot invalidate accumulated anomaly metric history.
+  Prefer upgrading the dbt package to the 0.26.x line (bump `packages.yml` +
+  `package-lock.yml`, `dbt deps`, `dbt parse`) or pin the CLI to the 0.16.x
+  generation. Do this in an isolated commit; the actual upgrade needs a
+  BigQuery-connected validation run, so it waits for the quota/enforcement
+  gate.
 
 ## D-004: Elementary baselines are history-based, not single-run
 
@@ -126,3 +139,57 @@ section. Every entry states the evidence it rests on.
   `~/.dlt/pipelines/uk_flood_raw`, not the repo.
 - **Decision:** any dataset/location move must delete `~/.dlt/pipelines/uk_flood_raw`
   (and project-local `.dlt` if present) and reload; never reuse state across datasets.
+
+## D-011: BigQuery daily query quota is 31,457 MiB, reset at midnight Pacific
+
+- **Status:** confirmed by the user 2026-10-27; recorded, enforcement test still
+  pending.
+- **Decision:** treat **31,457 MiB = 30.72 GiB** as the BigQuery "Query usage per
+  day" quota. The quota day resets at **midnight America/Los_Angeles**, not UTC:
+  **07:00 London now, 08:00 London after 1 Nov**. This supersedes the earlier
+  approximate "30 GiB/day" wording.
+- **Do not confuse with:** `MAX_BYTES_BILLED=10737418240` (10 GiB), which is a
+  per-query safety cap, not the daily quota.
+- **Evidence:** the 2026-10-27 Phase C analysis day used **30.98 GiB** across
+  **121 query jobs** (`europe-west2` 30.92 GiB + `US` 0.06 GiB), about **0.26 GiB
+  above** the exact quota. No quota error was observed, and the export is
+  complete. Do not run further BigQuery queries until the enforcement test is
+  confirmed and the quota has reset.
+- **Recording:** `.env.example` now carries
+  `BQ_DAILY_QUERY_QUOTA_MIB=31457` and
+  `BQ_QUOTA_RESET_TZ=America/Los_Angeles`.
+- **Proposed daily allocations** (not measurements, not entitlements):
+
+  | Workload | Allocation (MiB) | Share |
+  |---|---:|---:|
+  | Ingest/dlt query work | 4,096 | 13.0% |
+  | Scheduled dbt models | 10,240 | 32.6% |
+  | Scoped tests | 2,048 | 6.5% |
+  | Development/analysis | 4,096 | 13.0% |
+  | Reserve | 10,977 | 34.9% |
+  | **Total** | **31,457** | **100%** |
+
+  The weekly full-history suite is not covered by this table until it is
+  re-measured after partitioning; it must use the reserve or the D-012
+  fallback. If a workload exceeds its allocation, stop and re-plan rather than
+  silently borrowing from reserve.
+
+## D-012: Weekly full-history dbt tests are held as a fallback
+
+- **Status:** held as fallback 2026-10-27; not implemented and not run.
+- **Evidence:** daily tests use `test_lookback_days=3`; `make dbt-test-full`
+  sets it to `100000` and runs the full archive. The earlier full-suite estimate
+  was roughly **40 GB**, which exceeds the **30.72 GiB/day** quota before any
+  other work. That estimate likely includes unpartitioned raw scans, so it is
+  not a reliable post-migration cost.
+- **Decision:** keep the daily 3-day scoped run. Do **not** implement or run the
+  four-way split now. Re-measure the full suite after the partitioned migration;
+  if it still cannot fit a quota day, implement the split only as a fallback.
+- **Fallback:** split across four consecutive quota days, each starting after
+  midnight Pacific: (1) staging, (2) core, (3) marts, (4)
+  singular/Elementary/remaining. Each group is ~10 GB by the old estimate, so
+  every test still runs once per week. Alternatively, rotate archive windows
+  (for example one year per week over four weeks, or a 30-day weekly check plus
+  a quarterly full-archive run split by year).
+- **Gate:** do not run or implement these targets until the partitioned path is
+  measured and the user confirms the enforcement test and quota position.

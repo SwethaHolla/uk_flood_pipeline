@@ -54,7 +54,7 @@ dbt-test-full: ## Run dbt tests over full history (weekly, expensive)
 	$(UV) run dbt test --profiles-dir dbt --project-dir dbt --vars '{test_lookback_days: 100000}'
 
 elementary-report: ## Generate the Elementary HTML report
-	$(UV) run elementary generate-report --profiles-dir dbt --project-dir dbt
+	$(UV) run edr report --profiles-dir dbt --project-dir dbt
 
 test: ## Run the offline test suite (no cloud credentials required)
 	$(UV) run pytest -m "not integration"
