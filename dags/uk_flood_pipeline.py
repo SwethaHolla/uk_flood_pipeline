@@ -42,11 +42,11 @@ with DAG(
         task_id="ingest_raw_data",
         bash_command=f"cd {PROJECT_DIR} && PYTHONPATH={PYTHONPATH} python -m uk_flood.ingest run --destination bigquery",
         env={
-            "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
+            "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "<GCP_PROJECT_ID>"),
             "BQ_RAW_DATASET": os.environ.get("BQ_RAW_DATASET", "uk_flood_raw"),
             "BQ_LOCATION": os.environ.get("BQ_LOCATION", "europe-west2"),
             "GOOGLE_APPLICATION_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""),
-            "GOOGLE_CLOUD_PROJECT": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
+            "GOOGLE_CLOUD_PROJECT": os.environ.get("GCP_PROJECT_ID", "<GCP_PROJECT_ID>"),
         },
     )
 
@@ -54,7 +54,7 @@ with DAG(
         task_id="dbt_build",
         bash_command=f"cd {DBT_DIR} && PYTHONPATH={PYTHONPATH} dbt deps --profiles-dir . --project-dir . && dbt build --profiles-dir . --project-dir . --target dev",
         env={
-            "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
+            "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "<GCP_PROJECT_ID>"),
             "BQ_DBT_SCHEMA": os.environ.get("BQ_DBT_SCHEMA", "uk_flood"),
             "BQ_LOCATION": os.environ.get("BQ_LOCATION", "europe-west2"),
             "GOOGLE_APPLICATION_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""),
@@ -66,7 +66,7 @@ with DAG(
         task_id="elementary_monitoring",
         bash_command=f"cd {DBT_DIR} && PYTHONPATH={PYTHONPATH} elementary monitor --profiles-dir . --project-dir . || true",
         env={
-            "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "ukfloodpipeline"),
+            "GCP_PROJECT_ID": os.environ.get("GCP_PROJECT_ID", "<GCP_PROJECT_ID>"),
             "BQ_DBT_SCHEMA": os.environ.get("BQ_DBT_SCHEMA", "uk_flood"),
             "BQ_LOCATION": os.environ.get("BQ_LOCATION", "europe-west2"),
             "GOOGLE_APPLICATION_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""),

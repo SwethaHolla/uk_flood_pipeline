@@ -3,7 +3,7 @@
 **Status:** proposed, awaiting GATE approval. No dataset recreation performed.
 **Date:** 2026-10-22
 **Branch:** `phase-b-consistency` (to be created off `phase-a-audit`)
-**Environment:** project `ukfloodpipeline`, BigQuery location **US**.
+**Environment:** project `<GCP_PROJECT_ID>`, BigQuery location **US**.
 
 ---
 
@@ -171,7 +171,7 @@ Evidence from `dbt/dbt_packages/elementary/macros/edr/...`:
 
 ## 6. Service-account key removal (item 6) — gated, irreversible
 
-- Today: `ukfloodpipeline-key.json` (untracked, gitignored) drives auth. Verified **not**
+- Today: `<GCP_PROJECT_ID>-key.json` (untracked, gitignored) drives auth. Verified **not**
   in git history.
 - Plan (only after SA-impersonation via ADC/user creds is proven working):
   1. Prove impersonation: `gcloud auth application-default login` + impersonate

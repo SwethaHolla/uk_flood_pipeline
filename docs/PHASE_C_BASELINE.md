@@ -152,3 +152,5 @@ Important: `stg_readings` is a view over the unpartitioned raw table, so its `re
 - Full-history gitleaks scan: 26 commits, no leaks found. The pre-commit gitleaks hook also passes on the working tree. No `--no-verify` was used.
 - Bounds tests were committed on `phase-c-hardening` in `6bdee93` after the hooks passed.
 - The local service-account key remains untracked and gitignored; it is not in the artifacts.
+
+> **Update (2026-10-27):** settings.max_bytes_billed is inert for dlt ingestion (dlt 1.31.0 BigQuery loads use load jobs). The BigQuery daily quota (31,457 MiB, midnight America/Los_Angeles) is the backstop. dbt continues to use maximum_bytes_billed at the profile level. Post-migration, verify via job labels/history that dlt issues load jobs only.

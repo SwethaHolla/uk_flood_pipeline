@@ -3,7 +3,7 @@
 Scope: the canonical curated models (`stg_*` → `dim_*`/`fct_*`). Raw tables mirror
 the EA API payloads and are not re-documented here.
 
-**Generated from a live query** against `ukfloodpipeline`. Values are observed
+**Generated from a live query** against `<GCP_PROJECT_ID>`. Values are observed
 Unit values; they are **not** a fixed contract and will drift as the EA API changes.
 
 ---

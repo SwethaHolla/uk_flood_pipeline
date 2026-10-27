@@ -33,9 +33,11 @@ def load_dotenv(path: str | Path | None = None) -> None:
 @dataclass(frozen=True)
 class Settings:
     # GCP / BigQuery
-    gcp_project_id: str = field(default_factory=lambda: _env("GCP_PROJECT_ID", "ukfloodpipeline"))
+    gcp_project_id: str = field(default_factory=lambda: _env("GCP_PROJECT_ID", "<GCP_PROJECT_ID>"))
     bq_location: str = field(default_factory=lambda: _env("BQ_LOCATION", "europe-west2"))
     bq_raw_dataset: str = field(default_factory=lambda: _env("BQ_RAW_DATASET", "uk_flood_raw"))
+    # INERT for dlt ingestion (dlt BigQuery loads use load jobs with no max_bytes_billed).
+    # Daily quota (31,457 MiB, reset midnight America/Los_Angeles) is the backstop.
     max_bytes_billed: int = field(
         default_factory=lambda: _env_int("MAX_BYTES_BILLED", 10 * 1024**3)
     )
@@ -66,6 +68,6 @@ class Settings:
 
 
 def get_settings() -> Settings:
-    """Return settings, auto-loading a local `.env` if present."""
+    """Return settings, auto-loading a local .env if present."""
     load_dotenv()
     return Settings()

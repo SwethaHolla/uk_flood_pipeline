@@ -87,3 +87,14 @@ jobs:
           uv sync --frozen --all-extras --dev
           uv run ruff check src tests scripts mock_api dags
           uv run pytest -m "not integration"
+  check-placeholders:
+    name: Check for hardcoded project/SA patterns
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for disallowed patterns
+        run: |
+          if grep -rnE '<GCP_PROJECT_ID>|<SA_EMAIL>|ukfloodpipeline|dlt-runner@ukfloodpipeline' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' .; then
+            echo "ERROR: Found disallowed project/SA patterns"
+            exit 1
+          fi

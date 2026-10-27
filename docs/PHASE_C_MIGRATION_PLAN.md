@@ -32,10 +32,10 @@ The old 8.3 GB/run number was extrapolated and double-counted the dlt SCRIPT and
 ### Raw `readings`
 
 ```sql
-CREATE TABLE `ukfloodpipeline.uk_flood_raw.readings_partitioned`
+CREATE TABLE `<GCP_PROJECT_ID>.uk_flood_raw.readings_partitioned`
 PARTITION BY DATE(datetime)
 CLUSTER BY measure
-AS SELECT * FROM `ukfloodpipeline.uk_flood_raw.readings`;
+AS SELECT * FROM `<GCP_PROJECT_ID>.uk_flood_raw.readings`;
 ```
 
 - Same columns, including `_dlt_load_id` and `_dlt_id`.

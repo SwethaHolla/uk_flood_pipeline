@@ -4,7 +4,7 @@ uk_flood:
     dev:
       type: bigquery
       method: "{{ env_var('BQ_AUTH_METHOD', 'oauth') }}"
-      project: "{{ env_var('GCP_PROJECT_ID', 'ukfloodpipeline') }}"
+      project: "{{ env_var('GCP_PROJECT_ID', '<GCP_PROJECT_ID>') }}"
       dataset: "{{ env_var('BQ_DBT_SCHEMA', 'uk_flood') }}"
       location: "{{ env_var('BQ_LOCATION', 'europe-west2') }}"
       threads: 4

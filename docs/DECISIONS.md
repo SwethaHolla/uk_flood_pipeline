@@ -193,3 +193,9 @@ section. Every entry states the evidence it rests on.
   a quarterly full-archive run split by year).
 - **Gate:** do not run or implement these targets until the partitioned path is
   measured and the user confirms the enforcement test and quota position.
+## D-013: settings.max_bytes_billed is inert for dlt; daily quota is the backstop
+
+- **Status:** documented 2026-10-27.
+- **Evidence:** dlt 1.31.0 has no maximum_bytes_billed/max_bytes_billed support in the BigQuery destination; dlt BigQuery loads use **load jobs**. The merge follow-up noted in Phase C was a query job without a max-bytes option. dbt still uses maximum_bytes_billed at the profile level (a different mechanism).
+- **Decision:** Settings.max_bytes_billed is **inert** for dlt ingestion. The **BigQuery \"Query usage per day\" quota (31,457 MiB, reset midnight America/Los_Angeles / 07:00 London)** is the effective backstop for dlt/BigQuery. Do **not** rely on per-query byte caps in dlt code.
+- **Verification (post-migration):** after the partitioned migration, verify via BigQuery job labels/history that dlt issues **load jobs only** (no ad-hoc query jobs) for ingestion paths; if any query jobs appear, they must be reviewed against the daily quota.

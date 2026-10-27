@@ -4,7 +4,7 @@
 **Author:** audit pass (senior DE review).
 **Date:** 2026-10-22
 **Repo commit at audit:** `18e7a0a` (branch `main`), audit branch `phase-a-audit`.
-**Environment:** GCP project `ukfloodpipeline`, BigQuery location **US** (multi-region), Python 3.12, dbt-core 1.9.x, dlt 1.x, Elementary 0.16.4.
+**Environment:** GCP project `<GCP_PROJECT_ID>`, BigQuery location **US** (multi-region), Python 3.12, dbt-core 1.9.x, dlt 1.x, Elementary 0.17.0.
 
 > Policy reminder for the whole programme: every number in docs must be produced by a
 > script and carry **date + commit SHA + environment**. No hand-edited numbers. Where
@@ -70,7 +70,7 @@ the offending values into the observability layer so the count is visible over t
    **europe-west2**. Dataset location is immutable — this needs a recreate + reload
    migration (Phase B).
 2. **Key-file guidance.** `.env.example`, `dbt/profiles.yml` and the DAG all lean on
-   `GOOGLE_APPLICATION_CREDENTIALS` (a key file). A `ukfloodpipeline-key.json` exists in
+   `GOOGLE_APPLICATION_CREDENTIALS` (a key file). A `<GCP_PROJECT_ID>-key.json` exists in
    the working tree (untracked, gitignored — verified **not** in git history). Brief
    wants SA **impersonation** or ADC, least-privilege, no key files, and documented
    Airflow-in-Docker auth.
@@ -101,7 +101,7 @@ the offending values into the observability layer so the count is visible over t
 - Version pins are ranges (`dbt-bigquery>=1.8,<1.10`, `elementary-data>=0.13`) — need to
   check current releases and decide deliberately. Checked this audit: current
   **Airflow 3.3.2** (repo pins 2.10.4 — upgrade is a major version, high-risk, plan
-  first), **Elementary 0.26.1** (repo 0.16.4). Decision deferred to Phase D with a
+  first), **Elementary 0.26.1** (repo 0.17.0). Decision deferred to Phase D with a
   written upgrade/no-upgrade rationale.
 
 ### 3.4 Chaos / benchmarks

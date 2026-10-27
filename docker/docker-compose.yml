@@ -13,7 +13,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 30
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     # BigQuery / project settings are injected from .env by env_file below
-    GCP_PROJECT_ID: ${GCP_PROJECT_ID:-ukfloodpipeline}
+    GCP_PROJECT_ID: ${GCP_PROJECT_ID:-<GCP_PROJECT_ID>}
     BQ_RAW_DATASET: ${BQ_RAW_DATASET:-uk_flood_raw}
     BQ_DBT_SCHEMA: ${BQ_DBT_SCHEMA:-uk_flood}
     BQ_LOCATION: ${BQ_LOCATION:-europe-west2}

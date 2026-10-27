@@ -60,7 +60,7 @@ QUERIES = [
 ]
 
 
-def run_benchmarks(project_id: str = "ukfloodpipeline") -> None:
+def run_benchmarks(project_id: str = "<GCP_PROJECT_ID>") -> None:
     """Run benchmark queries and capture metrics."""
     print(f"Running benchmarks against project: {project_id}")
     client = bigquery.Client(project=project_id)
@@ -124,5 +124,5 @@ def run_benchmarks(project_id: str = "ukfloodpipeline") -> None:
 if __name__ == "__main__":
     import sys
 
-    project = sys.argv[1] if len(sys.argv) > 1 else "ukfloodpipeline"
+    project = sys.argv[1] if len(sys.argv) > 1 else "<GCP_PROJECT_ID>"
     run_benchmarks(project)

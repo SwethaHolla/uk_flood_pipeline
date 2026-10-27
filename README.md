@@ -34,14 +34,14 @@ EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →
 | Ingestion | [dlt](https://dlthub.com/) 1.x (BigQuery/DuckDB), [httpx](https://www.python-httpx.org/), [tenacity](https://tenacity.readthedocs.io/) |
 | Validation | [Pydantic v2](https://docs.pydantic.dev/) with strict contracts and quarantine |
 | Transformation | [dbt-core 1.9.11](https://docs.getdbt.com/) + [dbt-bigquery 1.9.2](https://docs.getdbt.com/docs/core/connect-data-platform/bigquery-setup) / [dbt-duckdb 1.9.6](https://docs.getdbt.com/docs/core/connect-data-platform/duckdb-setup) |
-| Data quality/observability | [Elementary 0.16.4](https://docs.elementary-data.com/) (BigQuery), dbt generic + singular tests |
+| Data quality/observability | [Elementary 0.17.0](https://docs.elementary-data.com/) (BigQuery), dbt generic + singular tests |
 | Orchestration | [Apache Airflow 2.10.4](https://airflow.apache.org/) via Docker Compose (LocalExecutor) |
 | Testing/lint | [pytest](https://docs.pytest.org/), [ruff](https://docs.astral.sh/ruff/), [sqlfluff](https://sqlfluff.com/), [pre-commit](https://pre-commit.com/) |
 | CI/CD | GitHub Actions |
 
 ## Results & Metrics
 
-### Data Quality (BigQuery - `ukfloodpipeline`)
+### Data Quality (BigQuery - `<GCP_PROJECT_ID>`)
 | Metric | Result |
 | --- | --- |
 | dbt build (dev target) | **85 PASS / 1 WARN / 0 ERR** (86 total) |
@@ -120,13 +120,13 @@ gcloud auth login
 gcloud auth application-default login
 
 # Set environment
-export GCP_PROJECT_ID=ukfloodpipeline
+export GCP_PROJECT_ID=<GCP_PROJECT_ID>
 export BQ_LOCATION=europe-west2
 export BQ_RAW_DATASET=uk_flood_raw
 export BQ_DBT_SCHEMA=uk_flood
 # Auth: use ADC or service-account impersonation — no downloaded key files.
 #   gcloud auth application-default login
-#   (optional) export GCP_IMPERSONATE_SA=dlt-runner@ukfloodpipeline.iam.gserviceaccount.com
+#   (optional) export GCP_IMPERSONATE_SA=dlt-runner@<GCP_PROJECT_ID>.iam.gserviceaccount.com
 
 # Ingest from EA API
 make ingest
