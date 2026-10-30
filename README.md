@@ -34,7 +34,7 @@ EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →
 | Ingestion | [dlt](https://dlthub.com/) 1.x (BigQuery/DuckDB), [httpx](https://www.python-httpx.org/), [tenacity](https://tenacity.readthedocs.io/) |
 | Validation | [Pydantic v2](https://docs.pydantic.dev/) with strict contracts and quarantine |
 | Transformation | [dbt-core 1.9.11](https://docs.getdbt.com/) + [dbt-bigquery 1.9.2](https://docs.getdbt.com/docs/core/connect-data-platform/bigquery-setup) / [dbt-duckdb 1.9.6](https://docs.getdbt.com/docs/core/connect-data-platform/duckdb-setup) |
-| Data quality/observability | [Elementary 0.17.0](https://docs.elementary-data.com/) (BigQuery), dbt generic + singular tests |
+| Data quality/observability | [Elementary 0.17.0](https://docs.elementary-data.com/) (BigQuery, pinned; latest 0.26.1, revisit when `<0.18` cap lifted), dbt generic + singular tests |
 | Orchestration | [Apache Airflow 2.10.4](https://airflow.apache.org/) via Docker Compose (LocalExecutor) |
 | Testing/lint | [pytest](https://docs.pytest.org/), [ruff](https://docs.astral.sh/ruff/), [sqlfluff](https://sqlfluff.com/), [pre-commit](https://pre-commit.com/) |
 | CI/CD | GitHub Actions |
