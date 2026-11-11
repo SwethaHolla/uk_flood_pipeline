@@ -229,7 +229,8 @@ section. Every entry states the evidence it rests on.
 - **Freshness:** the archive was last refreshed 2026-11-11; re-pull before ~2026-12-09
   and weekly until the Airflow DAG owns ingestion. `scripts/archive_history.py` is
   incremental (`since` + 1-day overlap, merge by `@id`).
-- **Cost:** exact legacy dry-run 4,338,068,180 B; projected archive staging
-  4,344,088,403 B; projected union 8,682,156,583 B. The final exact dry-run must be run
-  after the gated staging load. Load jobs are free; staging storage is ~4.34GB
-  temporary.
+- **Cost:** exact legacy dry-run 4,338,068,180 B. Archive staging is not loaded yet,
+  so its exact dry-run is blocked; the latest pre-load projection is 4,344,116,237 B
+  for staging and 8,682,184,417 B for the union (15,451,347 archive rows). The final
+  exact dry-run must be run after the gated staging load. Load jobs are free; staging
+  storage is ~4.34GB temporary.
