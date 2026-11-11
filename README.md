@@ -134,6 +134,10 @@ make ingest
 # Seed ~4 weeks of history (per-measure)
 make seed-history
 
+# Local EA archive (covers the BigQuery gap; gitignored under data/archive)
+# Incremental: re-pull before ~2026-12-09 and weekly until Airflow owns ingestion.
+uv run python scripts/archive_history.py --workers 8
+
 # Transform with dbt
 make dbt-deps
 make dbt-build
