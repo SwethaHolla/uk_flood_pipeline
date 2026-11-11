@@ -206,3 +206,30 @@ section. Every entry states the evidence it rests on.
 - **Evidence:** `dbt/packages.yml` pins `elementary-data/elementary` to `>=0.17.0,<0.18.0`; `dbt/package-lock.yml` and the installed `dbt/dbt_packages/elementary/dbt_project.yml` are 0.17.0; `uv.lock` pins `elementary-data` 0.17.0. The 0.26.1 dbt package accepts dbt-core 1.9.x (`require-dbt-version: >=1.0.0,<3.0.0`), so dbt-core is not the blocker.
 - **Decision:** keep the package and CLI on the same validated 0.17.x generation rather than mixing in 0.26.1. The 0.18+/0.26.x generation changes Elementary models/macros/tables and requires a BigQuery-connected upgrade validation (dbt deps/parse/build + report); it could also invalidate the stored anomaly baselines (D-003/D-004). That validation is gated behind the quota/partitioned-migration work.
 - **Revisit:** when the quota/partitioned-migration gate allows a connected upgrade run; bump the dbt package, CLI, and lockfiles together, then re-establish baselines.
+
+## D-015: Preserve readings_legacy and refresh the local archive weekly
+
+- **Status:** proposed/gated 2026-11-11. No BigQuery data changes yet.
+- **Context:** The EA API retains a rolling ~28-day window. The local archive spans
+  2021-11-01..2026-11-11; BigQuery `readings` covers ~29 Sep-26 Oct, so
+  ~29 Sep-13 Oct exists only in BigQuery. The archive and BigQuery windows overlap but
+  are not identical.
+- **Decision:** Never drop the current `readings` table. Before any swap, extract it to
+  Parquet in GCS and rename it to `readings_legacy`. Build a new partitioned `readings`
+  (`PARTITION BY DATE(datetime)`, `CLUSTER BY measure`) as a deduplicated union of
+  `readings_legacy` and archive staging. Keep `readings_legacy` until per-day counts in
+  the new table match for the whole legacy date range and archive range, and until
+  explicit approval. Do not append the archive to the live table; build once via
+  CTAS/insert.
+- **Dedup rule:** legacy rows win the overlap (`source_priority=0`), archive fills
+  missing keys and the tail (`source_priority=1`); keep the lexicographically smallest
+  `id` within a source. Archive rows get a deterministic synthetic `_dlt_load_id`
+  (archive snapshot) and `_dlt_id` (hash of measure/datetime/reading_id); preserve
+  dlt's `measure`/`datetime`/`_dlt_load_id`/`_dlt_id` NOT NULL hints.
+- **Freshness:** the archive was last refreshed 2026-11-11; re-pull before ~2026-12-09
+  and weekly until the Airflow DAG owns ingestion. `scripts/archive_history.py` is
+  incremental (`since` + 1-day overlap, merge by `@id`).
+- **Cost:** exact legacy dry-run 4,338,068,180 B; projected archive staging
+  4,344,088,403 B; projected union 8,682,156,583 B. The final exact dry-run must be run
+  after the gated staging load. Load jobs are free; staging storage is ~4.34GB
+  temporary.
