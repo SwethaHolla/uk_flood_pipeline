@@ -199,3 +199,10 @@ section. Every entry states the evidence it rests on.
 - **Evidence:** dlt 1.31.0 has no maximum_bytes_billed/max_bytes_billed support in the BigQuery destination; dlt BigQuery loads use **load jobs**. The merge follow-up noted in Phase C was a query job without a max-bytes option. dbt still uses maximum_bytes_billed at the profile level (a different mechanism).
 - **Decision:** Settings.max_bytes_billed is **inert** for dlt ingestion. The **BigQuery \"Query usage per day\" quota (31,457 MiB, reset midnight America/Los_Angeles / 07:00 London)** is the effective backstop for dlt/BigQuery. Do **not** rely on per-query byte caps in dlt code.
 - **Verification (post-migration):** after the partitioned migration, verify via BigQuery job labels/history that dlt issues **load jobs only** (no ad-hoc query jobs) for ingestion paths; if any query jobs appear, they must be reviewed against the daily quota.
+
+## D-014: Elementary pinned to 0.17.0, not 0.26.1
+
+- **Status:** decided 2026-10-27; pin kept.
+- **Evidence:** `dbt/packages.yml` pins `elementary-data/elementary` to `>=0.17.0,<0.18.0`; `dbt/package-lock.yml` and the installed `dbt/dbt_packages/elementary/dbt_project.yml` are 0.17.0; `uv.lock` pins `elementary-data` 0.17.0. The 0.26.1 dbt package accepts dbt-core 1.9.x (`require-dbt-version: >=1.0.0,<3.0.0`), so dbt-core is not the blocker.
+- **Decision:** keep the package and CLI on the same validated 0.17.x generation rather than mixing in 0.26.1. The 0.18+/0.26.x generation changes Elementary models/macros/tables and requires a BigQuery-connected upgrade validation (dbt deps/parse/build + report); it could also invalidate the stored anomaly baselines (D-003/D-004). That validation is gated behind the quota/partitioned-migration work.
+- **Revisit:** when the quota/partitioned-migration gate allows a connected upgrade run; bump the dbt package, CLI, and lockfiles together, then re-establish baselines.

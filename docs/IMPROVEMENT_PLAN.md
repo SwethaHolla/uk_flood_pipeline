@@ -79,8 +79,8 @@ the offending values into the observability layer so the count is visible over t
    No documented project **daily quota** (30 GiB/day) or £5 budget reality-check.
 4. **Retention:** no partition expiry anywhere. Raw/staging readings grow unbounded.
 5. **Secret scan:** need a real scanner pass (gitleaks/`git grep`) for billing IDs,
-   project number, keys. Project number `371359095978` and billing account id appear in
-   earlier *session notes* but I must confirm none are committed.
+   project number, keys. Project number `<GCP_PROJECT_NUMBER>` and billing account id
+   appear in earlier *session notes* but I must confirm none are committed.
 
 ### 3.2 Observability (currently thin)
 - `run_metadata` + `quarantine` exist in **raw** but there is **no `ops` dataset**, no

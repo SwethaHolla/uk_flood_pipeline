@@ -1,8 +1,17 @@
 # Decisions
 
-- D-001: dlt daily quota is the backstop for BigQuery bytes billed (settings.max_bytes_billed is inert). 
-- D-013: Load job labels and backfill verification (added); confirm per label (load_job_ids/gcs_path/dir) on merge/verification.
-- Elementary CLI pin/fallback: CLI in env reports 0.17.0 (dbt package <0.18 pinned to 0.17.0 in packages.yml/package-lock.yml; uv.lock pins elementary-data 0.17.0). CLI upgrade note exists (0.26.1 available) but cap follows CLI/dbt package constraints; fallback decision: keep Elementary at 0.17.0 due to compatibility cap <0.18.0. README stack table already states 0.17.0.
+Canonical decision log: `docs/DECISIONS.md`. IDs here match that log.
 
-- D-014: Elementary pinned to 0.17.0 (dbt package constraint <0.18.0, package-lock/uv.lock pinned; CLI warns 0.26.1 available). Pin kept for compatibility with current Elementary integration; revisit when upgrading Elementary beyond 0.17.x or when dbt/adapter compatibility allows (<0.18 cap lifted).
-
+- D-001: BigQuery location - migrated to europe-west2 (EXECUTED). See `docs/DECISIONS.md`.
+- D-013: `settings.max_bytes_billed` is inert for dlt; the BigQuery daily query quota
+  (31,457 MiB, reset midnight America/Los_Angeles) is the backstop. Load-job labels and
+  backfill verification were added; confirm per label (load_job_ids/gcs_path/dir) on
+  merge/verification. See `docs/DECISIONS.md`.
+- D-014: Elementary pinned to 0.17.0, not 0.26.1. Why: `dbt/packages.yml` pins the dbt
+  package to the validated 0.17.x generation (`>=0.17.0,<0.18.0`), `dbt/package-lock.yml`
+  and `uv.lock` pin the matching 0.17.0 package/CLI, and the 0.18+/0.26.x generation
+  changes Elementary models/macros/tables that need a BigQuery-connected upgrade
+  validation (dbt deps/parse/build + report) and could invalidate stored anomaly
+  baselines (D-003/D-004). 0.26.1 is not blocked by dbt-core (its dbt_project accepts
+  dbt-core 1.9.x); it is deferred until the quota/partitioned-migration gate permits a
+  connected validation run. Revisit then.
