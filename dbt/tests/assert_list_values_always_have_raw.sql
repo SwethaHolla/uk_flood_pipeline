@@ -6,4 +6,6 @@ select
     measure_id,
     reading_time
 from {{ ref('stg_readings') }}
-where value_is_list and reading_value is null
+where value_is_list
+  and reading_value is null
+  and reading_time >= {{ test_lookback_timestamp_start() }}

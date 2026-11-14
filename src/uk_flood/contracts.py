@@ -44,6 +44,28 @@ def _ensure_utc(dt: _dt.datetime | None) -> _dt.datetime | None:
     return dt.astimezone(UTC)
 
 
+MIN_PLAUSIBLE_DATETIME = _dt.datetime(2000, 1, 1, tzinfo=UTC)
+MAX_FUTURE_SKEW = _dt.timedelta(days=1)
+
+
+def _ensure_plausible_reading(dt: _dt.datetime | None) -> _dt.datetime | None:
+    """Reject timestamps outside the EA archive's plausible bounds.
+
+    The EA archive starts well after 2000 and a reading cannot legitimately be
+    more than a day ahead of warehouse time (clock skew grace). Bad timestamps
+    are quarantined at ingest rather than written to the raw layer.
+    """
+    if dt is None:
+        return None
+    if dt < MIN_PLAUSIBLE_DATETIME:
+        raise ValueError(
+            f"reading datetime {dt.isoformat()} is before {MIN_PLAUSIBLE_DATETIME.isoformat()}"
+        )
+    if dt > _dt.datetime.now(UTC) + MAX_FUTURE_SKEW:
+        raise ValueError(f"reading datetime {dt.isoformat()} is more than 1 day in the future")
+    return dt
+
+
 class _BaseContract(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
@@ -79,7 +101,7 @@ class LatestReadingContract(_BaseContract):
 
     @model_validator(mode="after")
     def _normalise_dt(self) -> LatestReadingContract:
-        self.datetime = _ensure_utc(self.datetime)
+        self.datetime = _ensure_plausible_reading(_ensure_utc(self.datetime))
         return self
 
 
@@ -122,7 +144,9 @@ class MeasureContract(_BaseContract):
 
     @model_validator(mode="after")
     def _normalise(self) -> MeasureContract:
-        self.latest_reading_datetime = _ensure_utc(self.latest_reading_datetime)
+        self.latest_reading_datetime = _ensure_plausible_reading(
+            _ensure_utc(self.latest_reading_datetime)
+        )
         return self
 
 
@@ -238,5 +262,5 @@ class ReadingContract(_BaseContract):
 
     @model_validator(mode="after")
     def _normalise_dt(self) -> ReadingContract:
-        self.datetime = _ensure_utc(self.datetime)
+        self.datetime = _ensure_plausible_reading(_ensure_utc(self.datetime))
         return self

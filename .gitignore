@@ -21,10 +21,12 @@ uv.lock.bak
 *.json
 !mock_api/fixtures/*.json
 !dbt/**/*.json
+!docs/artifacts/*.json
 !.github/**/*.yml
 
 # GCP / dbt
 service-account*.json
+ukfloodpipeline-key.json
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
@@ -40,6 +42,7 @@ airflow.db
 
 # Elementary
 elementary/
+edr_target/
 output.html
 
 # OS / IDE
@@ -50,6 +53,7 @@ Thumbs.db
 *.swp
 
 # Data exports
-data/tmp/
+data/
 *.csv
 !mock_api/fixtures/*.csv
+!docs/artifacts/*.csv

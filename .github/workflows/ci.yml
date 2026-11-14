@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_PYTHON: "3.12"
+
+jobs:
+  lint:
+    name: Lint (ruff + sqlfluff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run ruff check src tests scripts mock_api dags
+      - run: uv run ruff format --check src tests scripts mock_api dags
+
+  test:
+    name: Tests (offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run pytest -m "not integration" --cov=src --cov-report=term-missing
+
+  dbt-parse:
+    name: dbt parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - name: dbt deps
+        run: uv run dbt deps --profiles-dir ci/dbt --project-dir dbt
+      - name: dbt parse (no warehouse connection)
+        run: uv run dbt parse --profiles-dir ci/dbt --project-dir dbt
+        env:
+          # Dummy credentials: `dbt parse` compiles without contacting BigQuery
+          GCP_PROJECT_ID: ci-dummy
+          BQ_DBT_SCHEMA: ci_dummy
+
+  sqlfluff:
+    name: Lint (sqlfluff / dbt templater)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run dbt deps --profiles-dir ci/dbt --project-dir dbt
+      - run: uv run sqlfluff lint dbt/models
+        env:
+          GCP_PROJECT_ID: ci-dummy
+          BQ_DBT_SCHEMA: ci_dummy
+
+  fresh-clone:
+    name: Fresh-clone reproducibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: origin
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Clone into a clean directory and run the offline gate
+        run: |
+          git clone "$GITHUB_WORKSPACE/origin" fresh-clone
+          cd fresh-clone
+          uv sync --frozen --all-extras --dev
+          uv run ruff check src tests scripts mock_api dags
+          uv run pytest -m "not integration"
+  check-placeholders:
+    name: Check for hardcoded project/SA patterns
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for disallowed patterns
+        run: |
+          if grep -rnE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.gserviceaccount\.com' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' . | grep -v '<SA_EMAIL>'; then
+            echo 'ERROR: Found hardcoded service account email'
+            exit 1
+          fi
+          if grep -rnE '\b[0-9]{12}\b' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' . | grep -v '<GCP_PROJECT_NUMBER>' | grep -v 'bytes_billed' | grep -v '31457' | grep -v '116444736000000000' | grep -v '1793063562' | grep -v '922337203685477'; then
+            echo 'ERROR: Found hardcoded 12-digit project number'
+            exit 1
+          fi
+          if grep -rnE '\b[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}\b' --include='*.py' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.md' --include='*.sql' --include='*.env*' . | grep -v '<BILLING_ACCOUNT_ID>'; then
+            echo 'ERROR: Found hardcoded billing account ID'
+            exit 1
+          fi

@@ -34,14 +34,14 @@ EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →
 | Ingestion | [dlt](https://dlthub.com/) 1.x (BigQuery/DuckDB), [httpx](https://www.python-httpx.org/), [tenacity](https://tenacity.readthedocs.io/) |
 | Validation | [Pydantic v2](https://docs.pydantic.dev/) with strict contracts and quarantine |
 | Transformation | [dbt-core 1.9.11](https://docs.getdbt.com/) + [dbt-bigquery 1.9.2](https://docs.getdbt.com/docs/core/connect-data-platform/bigquery-setup) / [dbt-duckdb 1.9.6](https://docs.getdbt.com/docs/core/connect-data-platform/duckdb-setup) |
-| Data quality/observability | [Elementary 0.16.4](https://docs.elementary-data.com/) (BigQuery), dbt generic + singular tests |
+| Data quality/observability | [Elementary 0.17.0](https://docs.elementary-data.com/) (BigQuery, pinned; latest 0.26.1, revisit when `<0.18` cap lifted), dbt generic + singular tests |
 | Orchestration | [Apache Airflow 2.10.4](https://airflow.apache.org/) via Docker Compose (LocalExecutor) |
 | Testing/lint | [pytest](https://docs.pytest.org/), [ruff](https://docs.astral.sh/ruff/), [sqlfluff](https://sqlfluff.com/), [pre-commit](https://pre-commit.com/) |
 | CI/CD | GitHub Actions |
 
 ## Results & Metrics
 
-### Data Quality (BigQuery - `ukfloodpipeline`)
+### Data Quality (BigQuery - `<GCP_PROJECT_ID>`)
 | Metric | Result |
 | --- | --- |
 | dbt build (dev target) | **85 PASS / 1 WARN / 0 ERR** (86 total) |
@@ -57,7 +57,16 @@ EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →
 | Offline tests | **38 passed** (100%) |
 | Linting (ruff + sqlfluff) | **Clean** |
 
-### Performance (BigQuery, on-demand $5/TB)
+### Performance (BigQuery) — **UNVERIFIED / superseded**
+
+> These numbers are retained for reference only and are **not evidence**. They were
+> produced by a single un-repeated run, every query was billed at BigQuery's 10 MB
+> minimum-per-table floor, and the rate used ($5/TB) was wrong. Official on-demand
+> pricing is **$6.25 per TiB** (first 1 TiB/month free, 10 MB minimum per table +
+> query). The rigorous, repeatable benchmark is regenerated in Phase F and will
+> report N>=5 runs, median + p95, dry-run byte pruning, and `INFORMATION_SCHEMA.JOBS`
+> slot usage.
+
 | Query | Time | Bytes Billed | Est. Cost |
 | --- | --- | --- | --- |
 | Daily readings (7 days) | 1.83s | 10.49 MB | $0.000048 |
@@ -68,7 +77,13 @@ EA Flood Monitoring API  →  Python (httpx) + Pydantic contracts  →  dlt  →
 
 *Optimizations:* `fct_readings` partitioned by `reading_date` (DAY), clustered by `measure_id`, incremental (MERGE on BigQuery / DELETE+INSERT on DuckDB).
 
-### Resilience (Chaos Testing)
+### Resilience (Chaos Testing) — **UNVERIFIED / superseded**
+
+> This table is **not evidence**: the harness that produced it recorded a connection
+> refusal as "Handled" (a reporting bug, now fixed in Phase B) and the scenarios were
+> run offline. Chaos v2 (schema drift, type change, duplicates, late/out-of-order,
+> empty, partial payload, quarantine flood) is regenerated in Phase E.
+
 | Scenario | Expected Behavior | Status |
 | --- | --- | --- |
 | API Timeout | Retry with exponential backoff | **Handled** |
@@ -105,17 +120,23 @@ gcloud auth login
 gcloud auth application-default login
 
 # Set environment
-export GCP_PROJECT_ID=ukfloodpipeline
-export BQ_LOCATION=US
+export GCP_PROJECT_ID=<GCP_PROJECT_ID>
+export BQ_LOCATION=europe-west2
 export BQ_RAW_DATASET=uk_flood_raw
 export BQ_DBT_SCHEMA=uk_flood
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+# Auth: use ADC or service-account impersonation — no downloaded key files.
+#   gcloud auth application-default login
+#   (optional) export GCP_IMPERSONATE_SA=dlt-runner@<GCP_PROJECT_ID>.iam.gserviceaccount.com
 
 # Ingest from EA API
 make ingest
 
 # Seed ~4 weeks of history (per-measure)
 make seed-history
+
+# Local EA archive (covers the BigQuery gap; gitignored under data/archive)
+# Incremental: re-pull before ~2026-12-09 and weekly until Airflow owns ingestion.
+uv run python scripts/archive_history.py --workers 8
 
 # Transform with dbt
 make dbt-deps
@@ -161,7 +182,7 @@ docs/                # PRD, DECISIONS, NEXT_STEPS, chaos-results, benchmarks
 
 **Marts:** `mart_station_reliability` (completeness/freshness), `mart_river_level_trends`, `mart_rainfall_trends`, `mart_flood_warning_history`
 
-**Data quality:** Schema tests (unique/not_null/relationships/accepted_values) + singular tests (`assert_no_future_readings`, `assert_no_duplicate_reading_keys`, `assert_list_values_always_have_raw`, `assert_bridge_measures_resolve`)
+**Data quality:** Schema tests (unique/not_null/relationships/accepted_values) + singular tests (`assert_reading_time_plausible`, `assert_no_duplicate_reading_keys`, `assert_list_values_always_have_raw`, `assert_bridge_measures_resolve`)
 
 ## Key features
 

@@ -76,6 +76,32 @@ SCENARIOS = [
 ]
 
 
+def _classify(scenario_id: int, status: object, error: str | None) -> tuple[str, str]:
+    """Return (observed, verdict) where verdict is '[OK] Handled' or '[FAIL] Unhandled'.
+
+    A scenario is only a success if the injected fault was *observed and expected*
+    for that endpoint. A connection refusal (mock server down) is never success —
+    previously it was recorded as '[OK] Handled' because the broad ``except`` set
+    ``ok=True``, which is exactly the reporting bug found in the audit.
+    """
+    if error is not None:
+        # Transport-level failure. Only endpoints *designed* to break transport
+        # (timeout / network-error / slow) may legitimately surface an error.
+        transport_faults = {1, 6, 7}
+        if scenario_id in transport_faults:
+            return f"error: {error[:60]}", "[OK] Handled"
+        return f"error: {error[:60]}", "[FAIL] Unhandled"
+
+    expected_status = {2: 429, 3: 500}.get(scenario_id)
+    if expected_status is not None:
+        ok = status == expected_status
+        return str(status), "[OK] Handled" if ok else "[FAIL] Unhandled"
+    # 4 (malformed) and 5 (bad data) should return 200 with a bad body; the
+    # client/quarantine layer is what handles them. A non-2xx here is unhandled.
+    ok = status == 200
+    return str(status), "[OK] Handled" if ok else "[FAIL] Unhandled"
+
+
 def run_chaos() -> None:
     """Run all chaos scenarios against mock API."""
     print("Starting chaos tests against mock API...")
@@ -85,50 +111,52 @@ def run_chaos() -> None:
     results = []
     for scenario in SCENARIOS:
         print(f"Scenario {scenario['id']}: {scenario['name']}")
+        start = time.time()
+        error: str | None = None
+        status: object = "error"
         try:
-            start = time.time()
             resp = httpx.get(f"{MOCK_BASE}{scenario['endpoint']}", timeout=5.0)
-            elapsed = time.time() - start
             status = resp.status_code
-            print(f"  Status: {status}, Time: {elapsed:.2f}s")
-            results.append(
-                {
-                    "scenario": scenario,
-                    "status": status,
-                    "elapsed": elapsed,
-                    "ok": status in (200, 429, 500),
-                }
-            )
+            print(f"  Status: {status}")
         except Exception as e:
-            elapsed = time.time() - start if "start" in locals() else 0
-            print(f"  Error: {type(e).__name__}: {e}")
-            results.append(
-                {
-                    "scenario": scenario,
-                    "status": "error",
-                    "elapsed": elapsed,
-                    "error": str(e),
-                    "ok": True,
-                }
-            )
+            error = f"{type(e).__name__}: {e}"
+            print(f"  Error: {error}")
+        elapsed = time.time() - start
+
+        observed, verdict = _classify(scenario["id"], status, error)
+        results.append(
+            {
+                "scenario": scenario,
+                "observed": observed,
+                "elapsed": elapsed,
+                "verdict": verdict,
+            }
+        )
+        print(f"  Verdict: {verdict}")
         print()
 
     # Write results
     RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with RESULTS_FILE.open("w") as f:
+    with RESULTS_FILE.open("w", encoding="utf-8") as f:
         f.write("# Chaos Test Results\n\n")
         f.write(f"**Run Date:** {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write(f"**Target:** {MOCK_BASE}\n\n")
         f.write("## Scenarios\n\n")
-        f.write("| # | Scenario | Endpoint | Expected | Observed | Status |\n")
+        f.write("| # | Scenario | Endpoint | Expected | Observed | Verdict |\n")
         f.write("|---|----------|----------|----------|----------|--------|\n")
         for r in results:
             s = r["scenario"]
-            obs = r.get("status", "N/A")
-            status = "[OK] Handled" if r.get("ok") else "[FAIL] Failed"
-            f.write(f"| {s['id']} | {s['name']} | {s['endpoint']} | {s['expected']} | {obs} | {status} |\n")
+            f.write(
+                f"| {s['id']} | {s['name']} | {s['endpoint']} | {s['expected']} "
+                f"| {r['observed']} | {r['verdict']} |\n"
+            )
+        n_fail = sum(1 for r in results if r["verdict"].startswith("[FAIL]"))
+        f.write(
+            f"\n**Result:** {len(results) - n_fail}/{len(results)} handled, {n_fail} unhandled.\n"
+        )
         f.write("\n## Notes\n\n")
         f.write("- All scenarios tested against local mock FastAPI server\n")
+        f.write("- A connection refusal is recorded as UNHANDLED, not success\n")
         f.write("- Client implements retries with exponential backoff (tenacity)\n")
         f.write("- Contract validation routes bad data to quarantine table\n")
         f.write("- Pipeline continues on individual resource failures\n")

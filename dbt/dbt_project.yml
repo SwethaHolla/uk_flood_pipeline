@@ -36,3 +36,5 @@ vars:
   # How far back the reliability mart looks
   reliability_window_days: 7
   trend_window_days: 28
+  # Re-process recent fact partitions so append-only raw loads dedup on merge
+  fct_lookback_days: 3

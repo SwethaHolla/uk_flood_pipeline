@@ -4,7 +4,7 @@ from uk_flood.settings import Settings, get_settings
 def test_settings_defaults(monkeypatch):
     monkeypatch.delenv("GCP_PROJECT_ID", raising=False)
     s = Settings()
-    assert s.gcp_project_id == "ukfloodpipeline"
+    assert s.gcp_project_id == "<GCP_PROJECT_ID>"
     assert s.bq_raw_dataset == "uk_flood_raw"
     assert s.http_max_retries == 5
 

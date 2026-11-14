@@ -6,5 +6,6 @@ select
     reading_time,
     count(*) as row_count
 from {{ ref('fct_readings') }}
+where reading_date >= {{ test_lookback_date_start() }}
 group by 1, 2
 having count(*) > 1

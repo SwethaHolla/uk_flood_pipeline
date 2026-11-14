@@ -60,7 +60,7 @@ QUERIES = [
 ]
 
 
-def run_benchmarks(project_id: str = "ukfloodpipeline") -> None:
+def run_benchmarks(project_id: str = "<GCP_PROJECT_ID>") -> None:
     """Run benchmark queries and capture metrics."""
     print(f"Running benchmarks against project: {project_id}")
     client = bigquery.Client(project=project_id)
@@ -109,9 +109,13 @@ def run_benchmarks(project_id: str = "ukfloodpipeline") -> None:
         total_bytes = sum(r["bytes_billed"] for r in results)
         f.write(f"| **TOTAL** | - | - | **{total_bytes:,}** | **${total_cost:.6f}** |\n")
         f.write("\n## Optimization Notes\n\n")
-        f.write("- **Partitioning:** `fct_readings` partitioned by `DATE(dateTime)` for time-based pruning\n")
+        f.write(
+            "- **Partitioning:** `fct_readings` partitioned by `DATE(dateTime)` for time-based pruning\n"
+        )
         f.write("- **Clustering:** Clustered by `measure_id` to optimize joins and filters\n")
-        f.write("- **Incremental:** `fct_readings` uses incremental materialization (merge on BQ, delete+insert on DuckDB)\n")
+        f.write(
+            "- **Incremental:** `fct_readings` uses incremental materialization (merge on BQ, delete+insert on DuckDB)\n"
+        )
         f.write("- **Staging:** Views for fast development, materialized where beneficial\n")
 
     print(f"Results written to {RESULTS_FILE}")
@@ -120,5 +124,5 @@ def run_benchmarks(project_id: str = "ukfloodpipeline") -> None:
 if __name__ == "__main__":
     import sys
 
-    project = sys.argv[1] if len(sys.argv) > 1 else "ukfloodpipeline"
+    project = sys.argv[1] if len(sys.argv) > 1 else "<GCP_PROJECT_ID>"
     run_benchmarks(project)

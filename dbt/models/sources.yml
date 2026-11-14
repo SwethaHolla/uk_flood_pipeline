@@ -6,7 +6,7 @@ sources:
       Raw tables owned by the dlt ingestion layer (dataset uk_flood_raw).
       Loaded via `make ingest` (live API) or `make ingest-local` (mock API +
       duckdb).
-    database: "{{ env_var('DBT_SOURCE_DATABASE', env_var('GCP_PROJECT_ID', 'ukfloodpipeline')) }}"
+    database: "{{ env_var('DBT_SOURCE_DATABASE', env_var('GCP_PROJECT_ID', '<GCP_PROJECT_ID>')) }}"
     schema: "{{ env_var('BQ_RAW_DATASET', 'uk_flood_raw') }}"
     tables:
       - name: stations
