@@ -273,14 +273,22 @@ def _build_parquet(out_dir: Path, batch_size: int = 100) -> dict[str, Any]:
         con.execute("SET memory_limit='4GB'")
         con.execute(f"SET temp_directory={_sql_path(tmp_dir)}")
         con.execute("SET preserve_insertion_order=false")
+        con.execute("SET TimeZone='UTC'")
         for batch_no, start in enumerate(range(0, len(files), batch_size)):
             batch = files[start : start + batch_size]
             file_list = ", ".join(_sql_path(f) for f in batch)
             con.execute(
                 f"""
                 CREATE OR REPLACE TEMP VIEW raw AS
-                SELECT * FROM read_json_auto(
-                    [{file_list}], format='newline_delimited', union_by_name=true,
+                SELECT * FROM read_json(
+                    [{file_list}], format='newline_delimited',
+                    columns={{
+                        '@id': 'VARCHAR',
+                        'dateTime': 'VARCHAR',
+                        'measure': 'VARCHAR',
+                        'value': 'JSON',
+                        'qualifier': 'VARCHAR'
+                    }},
                     maximum_object_size=16777216
                 )
                 """
@@ -306,7 +314,7 @@ def _build_parquet(out_dir: Path, batch_size: int = 100) -> dict[str, Any]:
                         TRY_CAST(dateTime AS TIMESTAMPTZ) AS datetime,
                         {value_expr} AS value_raw,
                         {value_is_list_expr} AS value_is_list,
-                        (value IS NULL) AS value_missing,
+                        COALESCE(value IS NULL OR json_type(value) = 'NULL', FALSE) AS value_missing,
                         {qualifier_expr} AS qualifier
                     FROM raw
                 ) TO {_sql_path(parts_dir / f"part-{batch_no:05d}.parquet")}

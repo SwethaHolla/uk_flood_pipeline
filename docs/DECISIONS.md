@@ -209,28 +209,50 @@ section. Every entry states the evidence it rests on.
 
 ## D-015: Preserve readings_legacy and refresh the local archive weekly
 
-- **Status:** proposed/gated 2026-11-11. No BigQuery data changes yet.
+- **Status:** executed 2026-11-14; `readings_legacy` and
+  `readings_archive_staging` retained pending explicit cleanup approval.
 - **Context:** The EA API retains a rolling ~28-day window. The local archive spans
-  2021-11-01..2026-11-11; BigQuery `readings` covers ~29 Sep-26 Oct, so
-  ~29 Sep-13 Oct exists only in BigQuery. The archive and BigQuery windows overlap but
-  are not identical.
-- **Decision:** Never drop the current `readings` table. Before any swap, extract it to
-  Parquet in GCS and rename it to `readings_legacy`. Build a new partitioned `readings`
-  (`PARTITION BY DATE(datetime)`, `CLUSTER BY measure`) as a deduplicated union of
-  `readings_legacy` and archive staging. Keep `readings_legacy` until per-day counts in
-  the new table match for the whole legacy date range and archive range, and until
-  explicit approval. Do not append the archive to the live table; build once via
-  CTAS/insert.
+  2021-11-01..2026-11-11; the old BigQuery `readings` table spanned
+  2021-11-01..2026-10-26. The archive and legacy windows overlap but are not identical;
+  legacy-only keys (including 29 Sep-13 Oct) are preserved by legacy-first dedup.
+- **Archive correction:** the first parquet build used DuckDB `TIMESTAMPTZ` parsing in
+  the session timezone, which misread UTC `Z` timestamps across the spring DST boundary.
+  That produced 140 false duplicate groups and shifted 140 rows. The build now reads
+  `dateTime` as VARCHAR and sets `TimeZone='UTC'`; the corrected archive has
+  **15,451,487 rows, 0 duplicate `(measure, datetime)` keys**, and a regression test
+  covers the DST case. The earlier 84 identical / 56 conflicting report was an artifact.
+- **Decision:** Never drop the old table. It was backed up to GCS Parquet, renamed to
+  `readings_legacy`, and the new partitioned `readings` was built as a deduplicated
+  union of `readings_legacy` and archive staging. Keep both `readings_legacy` and
+  staging until explicit cleanup approval. Do not append the archive to the live table;
+  build once via insert.
+- **Execution evidence:**
+  - GCS backup: `gs://ukfloodpipeline-euw2-temp-20261111/backup/readings_legacy_2026-11-11_*.parquet`
+    (147 objects, 467,635,474 B); archive parquet at
+    `gs://ukfloodpipeline-euw2-temp-20261111/archive/readings_2026-11-11.parquet`
+    (77,720,696 B).
+  - Staging: 15,451,487 rows, 3,637,963,985 logical bytes, 0 null required fields,
+    0 duplicate keys.
+  - Exact INSERT dry-run: **7,976,032,165 B** (`UPPER_BOUND`); legacy scan was
+    4,338,068,180 B (`PRECISE`). Load jobs were free.
+  - New `readings`: **22,853,023 rows**, 6,684,515,906 logical bytes,
+    `PARTITION BY DATE(datetime)`, `CLUSTER BY measure`; 15,429,835 legacy rows +
+    7,423,188 archive rows; 0 required nulls; 22,853,023 distinct `_dlt_id`s.
+  - Reconciliation: 1,805 days, union daily counts 22,853,023, **0 mismatched days**;
+    span 2021-11-01..2026-11-11 22:30 UTC.
+  - Swap: `readings` -> `readings_legacy`; `readings_new` -> `readings`.
 - **Dedup rule:** legacy rows win the overlap (`source_priority=0`), archive fills
   missing keys and the tail (`source_priority=1`); keep the lexicographically smallest
   `id` within a source. Archive rows get a deterministic synthetic `_dlt_load_id`
   (archive snapshot) and `_dlt_id` (hash of measure/datetime/reading_id); preserve
   dlt's `measure`/`datetime`/`_dlt_load_id`/`_dlt_id` NOT NULL hints.
-- **Freshness:** the archive was last refreshed 2026-11-11; re-pull before ~2026-12-09
-  and weekly until the Airflow DAG owns ingestion. `scripts/archive_history.py` is
-  incremental (`since` + 1-day overlap, merge by `@id`).
-- **Cost:** exact legacy dry-run 4,338,068,180 B. Archive staging is not loaded yet,
-  so its exact dry-run is blocked; the latest pre-load projection is 4,344,116,237 B
-  for staging and 8,682,184,417 B for the union (15,451,347 archive rows). The final
-  exact dry-run must be run after the gated staging load. Load jobs are free; staging
-  storage is ~4.34GB temporary.
+- **Freshness:** the archive was last refreshed 2026-11-11; report generated
+  2026-11-14T02:58:39Z. Re-pull before ~2026-12-09 and weekly until the Airflow DAG
+  owns ingestion. `scripts/archive_history.py` is incremental (`since` + 1-day overlap,
+  merge by `@id`).
+- **Post-swap:** scheduled dlt history dual-write is append-only; `fct_readings`
+  reprocesses a 3-day lookback and merges on `(measure_id, reading_time)`.
+  `load_readings_history` backfill remains merge-based for idempotent seeding.
+- **Cost:** legacy scan 4,338,068,180 B; staging 3,637,963,985 B; INSERT
+  7,976,032,165 B. Load jobs are free; staging storage is ~3.64GB logical until
+  cleanup.

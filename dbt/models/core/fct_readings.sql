@@ -57,8 +57,8 @@ select
 from {{ ref('stg_readings') }} r
 left join {{ ref('dim_measure') }} m on r.measure_id = m.measure_id
 {% if is_incremental() %}
-where r.reading_time > (
+where r.reading_time >= (
     select coalesce(max(reading_time), cast('1900-01-01' as timestamp))
     from {{ this }}
-)
+) - interval {{ var('fct_lookback_days', 3) }} day
 {% endif %}

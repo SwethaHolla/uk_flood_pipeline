@@ -118,3 +118,24 @@ def test_dual_write_feeds_readings_from_latest(settings, duckdb_path):
         "readings (history) must be populated by the readings_latest dual-write; "
         f"got latest={latest}, history={history}"
     )
+
+
+def test_dual_write_is_append_only(settings, duckdb_path):
+    """Scheduled ingestion appends history; dbt owns recent-partition dedup."""
+    client = EAClient(settings)
+    run_ingestion(settings=settings, client=client, destination="duckdb", duckdb_path=duckdb_path)
+    con = duckdb.connect(duckdb_path)
+    try:
+        first = con.execute("SELECT COUNT(*) FROM uk_flood_raw.readings").fetchone()[0]
+    finally:
+        con.close()
+
+    run_ingestion(settings=settings, client=client, destination="duckdb", duckdb_path=duckdb_path)
+    con = duckdb.connect(duckdb_path)
+    try:
+        second = con.execute("SELECT COUNT(*) FROM uk_flood_raw.readings").fetchone()[0]
+    finally:
+        con.close()
+
+    assert first > 0
+    assert second == 2 * first, f"append-only dual-write expected {2 * first}, got {second}"

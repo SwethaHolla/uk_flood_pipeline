@@ -315,14 +315,14 @@ def run_ingestion(
                     )
                     if name == "readings_latest":
                         # Dual-write: the rolling ?latest snapshot also feeds the
-                        # `readings` history table (merge on measure+datetime),
-                        # so fct_readings accumulates without the seed script.
+                        # `readings` history table. Append-only after the partitioned
+                        # swap; fct_readings dedups the recent lookback window on
+                        # (measure_id, reading_time).
                         load_resources.append(
                             dlt.resource(
                                 valid,
                                 name="readings",
-                                write_disposition="merge",
-                                primary_key=READING_HISTORY_SPEC["primary_keys"],
+                                write_disposition="append",
                                 columns=TABLE_COLUMNS["readings"],
                             )
                         )

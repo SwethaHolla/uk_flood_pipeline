@@ -15,7 +15,10 @@ Canonical decision log: `docs/DECISIONS.md`. IDs here match that log.
   baselines (D-003/D-004). 0.26.1 is not blocked by dbt-core (its dbt_project accepts
   dbt-core 1.9.x); it is deferred until the quota/partitioned-migration gate permits a
   connected validation run. Revisit then.
-- D-015: Preserve the current BigQuery `readings` table as `readings_legacy` and never
-  drop it until per-day counts in the new partitioned table match the whole legacy and
-  archive ranges. Extract a Parquet backup first. Re-pull the local archive before
-  ~2026-12-09 and weekly until Airflow owns ingestion. See `docs/DECISIONS.md`.
+- D-015: Executed 2026-11-14. The old `readings` table was backed up to GCS Parquet,
+  renamed `readings_legacy`, and replaced by a deduplicated partitioned `readings`
+  (22,853,023 rows; 0 mismatched days). Keep `readings_legacy` and
+  `readings_archive_staging` until explicit cleanup approval. Scheduled dlt history
+  writes are append-only; `fct_readings` reprocesses a 3-day lookback to dedup.
+  Re-pull the local archive before ~2026-12-09 and weekly until Airflow owns ingestion.
+  See `docs/DECISIONS.md`.

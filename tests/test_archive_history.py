@@ -108,6 +108,52 @@ def test_build_parquet_batches_and_dedups(tmp_path: Path) -> None:
     assert rows[2][6] == "Missing"
 
 
+def test_build_parquet_preserves_utc_across_dst(tmp_path: Path) -> None:
+    readings = tmp_path / "readings"
+    _write_jsonl(
+        readings / "dst.jsonl",
+        [
+            {
+                "@id": "a",
+                "measure": "m1",
+                "dateTime": "2025-03-30T01:00:00Z",
+                "value": 0.29,
+            },
+            {
+                "@id": "b",
+                "measure": "m1",
+                "dateTime": "2025-03-30T02:00:00Z",
+                "value": 0.289,
+            },
+        ],
+    )
+
+    report = _build_parquet(tmp_path, batch_size=1)
+
+    assert report["parquet_rows"] == 2
+    assert report["duplicate_key_groups"] == 0
+    assert report["duplicate_extra_rows"] == 0
+
+    parquet = (tmp_path / "readings.parquet").as_posix()
+    con = duckdb.connect()
+    try:
+        con.execute("SET TimeZone='UTC'")
+        rows = con.execute(
+            f"""
+            SELECT reading_id, CAST(datetime AS VARCHAR)
+            FROM read_parquet('{parquet}')
+            ORDER BY datetime
+            """
+        ).fetchall()
+    finally:
+        con.close()
+
+    assert rows[0][0] == "a"
+    assert rows[0][1].startswith("2025-03-30 01:00:00")
+    assert rows[1][0] == "b"
+    assert rows[1][1].startswith("2025-03-30 02:00:00")
+
+
 def test_merge_by_id_updates_existing_and_appends_new() -> None:
     existing = [{"@id": "a", "value": 1}, {"@id": "b", "value": 2}]
     new = [{"@id": "b", "value": 3}, {"@id": "c", "value": 4}]
