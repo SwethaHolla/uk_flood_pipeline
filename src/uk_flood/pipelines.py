@@ -192,9 +192,10 @@ def make_pipeline(
     duckdb_path: str = "data/uk_flood.duckdb",
 ) -> dlt.Pipeline:
     if destination == "bigquery":
-        kwargs: dict[str, Any] = {"location": settings.bq_location}
-        if settings.google_application_credentials:
-            kwargs["credentials"] = settings.google_application_credentials
+        kwargs: dict[str, Any] = {
+            "location": settings.bq_location,
+            "project_id": settings.gcp_project_id,
+        }
         dest = dlt.destinations.bigquery(**kwargs)
     elif destination == "duckdb":
         Path(duckdb_path).parent.mkdir(parents=True, exist_ok=True)

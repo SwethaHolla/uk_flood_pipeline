@@ -124,9 +124,10 @@ export GCP_PROJECT_ID=<GCP_PROJECT_ID>
 export BQ_LOCATION=europe-west2
 export BQ_RAW_DATASET=uk_flood_raw
 export BQ_DBT_SCHEMA=uk_flood
-# Auth: use ADC or service-account impersonation — no downloaded key files.
-#   gcloud auth application-default login
-#   (optional) export GCP_IMPERSONATE_SA=dlt-runner@<GCP_PROJECT_ID>.iam.gserviceaccount.com
+export GOOGLE_CLOUD_PROJECT=<GCP_PROJECT_ID>
+# Auth: use ADC, or point GOOGLE_APPLICATION_CREDENTIALS at an impersonated ADC
+# JSON file for service-account impersonation (see docs/DECISIONS.md D-016).
+# Never commit the ADC file or a downloaded key.
 
 # Ingest from EA API
 make ingest

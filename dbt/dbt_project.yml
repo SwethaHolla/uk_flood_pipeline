@@ -27,6 +27,9 @@ models:
     marts:
       +schema: marts
       +tags: ["marts"]
+    monitoring:
+      +schema: monitoring
+      +tags: ["monitoring"]
   # Elementary targets BigQuery only (its anomaly models use warehouse
   # functions DuckDB lacks); local duckdb builds skip it entirely.
   elementary:

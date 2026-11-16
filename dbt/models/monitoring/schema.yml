@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: raw_readings_duplicate_counts
+    description: >
+      Ops metric for at-least-once raw landing. Duplicate (measure, datetime)
+      rows are expected in raw; staging dedups them and this model makes the
+      count visible per reading_date instead of failing a test.
+    columns:
+      - name: reading_date
+        description: UTC date of the reading.
+      - name: raw_rows
+        description: Raw rows in the lookback window for this date.
+      - name: distinct_keys
+        description: Distinct (measure, datetime) keys for this date.
+      - name: duplicate_extra_rows
+        description: raw_rows - distinct_keys.

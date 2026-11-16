@@ -1,14 +1,12 @@
 {#-
-  Incremental fact: partitioned by reading_date and clustered by measure_id on
-  BigQuery (adapter-gated below); DuckDB (local dev) runs plain incremental
-  MERGE. Benchmark evidence: docs/benchmarks.md.
+  Incremental fact: BigQuery uses insert_overwrite on reading_date partitions;
+  DuckDB (local dev) uses delete+insert on the natural key.
 -#}
 {% if target.type == 'bigquery' %}
     {{
         config(
             materialized='incremental',
-            incremental_strategy='merge',
-            unique_key=['measure_id', 'reading_time'],
+            incremental_strategy='insert_overwrite',
             partition_by={'field': 'reading_date', 'data_type': 'date'},
             partition_expiration_days=90,
             cluster_by=['measure_id'],

@@ -19,6 +19,9 @@ Canonical decision log: `docs/DECISIONS.md`. IDs here match that log.
   renamed `readings_legacy`, and replaced by a deduplicated partitioned `readings`
   (22,853,023 rows; 0 mismatched days). Keep `readings_legacy` and
   `readings_archive_staging` until explicit cleanup approval. Scheduled dlt history
-  writes are append-only; `fct_readings` reprocesses a 3-day lookback to dedup.
-  Re-pull the local archive before ~2026-12-09 and weekly until Airflow owns ingestion.
-  See `docs/DECISIONS.md`.
+  writes are append-only; staging dedups raw and `fct_readings` reprocesses a 3-day
+  lookback with `insert_overwrite`. Re-pull the local archive before ~2026-12-09 and
+  weekly until Airflow owns ingestion. See `docs/DECISIONS.md`.
+- D-016: BigQuery auth uses ADC impersonation, not a downloaded key. Point
+  `GOOGLE_APPLICATION_CREDENTIALS` at an impersonated ADC JSON file; dlt and dbt both
+  resolve it through ADC. Never commit the ADC file. See `docs/DECISIONS.md`.

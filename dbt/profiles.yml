@@ -9,7 +9,6 @@ uk_flood:
       location: "{{ env_var('BQ_LOCATION', 'europe-west2') }}"
       threads: 4
       maximum_bytes_billed: "{{ env_var('MAX_BYTES_BILLED', '10737418240') | int }}"
-      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS', '') }}"
     # Local warehouse for offline dbt iteration: same raw schema that the
     # duckdb ingestion CLI writes to (make ingest-local && make dbt-build-local).
     local:

@@ -224,13 +224,24 @@ section. Every entry states the evidence it rests on.
 - **Decision:** Never drop the old table. It was backed up to GCS Parquet, renamed to
   `readings_legacy`, and the new partitioned `readings` was built as a deduplicated
   union of `readings_legacy` and archive staging. Keep both `readings_legacy` and
-  staging until explicit cleanup approval. Do not append the archive to the live table;
-  build once via insert.
+  staging as the Phase F “before” baseline until explicit cleanup approval. Do not
+  append the archive to the live table; build once via insert.
+- **Drop conditions for the baseline:** only after all of these are true:
+  1. Per-day counts match for the full legacy and archive ranges (already satisfied:
+     1,805 days, 0 mismatched days).
+  2. The GCS backup is verified restorable by reading the Parquet back through an
+     external table and matching `readings_legacy` row count (15,429,835) and archive
+     staging row count (15,451,487).
+  3. Explicit cleanup approval is recorded. Until then, do not drop either table.
 - **Execution evidence:**
-  - GCS backup: `gs://ukfloodpipeline-euw2-temp-20261111/backup/readings_legacy_2026-11-11_*.parquet`
-    (147 objects, 467,635,474 B); archive parquet at
-    `gs://ukfloodpipeline-euw2-temp-20261111/archive/readings_2026-11-11.parquet`
-    (77,720,696 B).
+  - GCS backup: private bucket in `europe-west2` (name intentionally not recorded in
+    committed docs), prefix `backup/readings_legacy_2026-11-11_*.parquet`
+    (147 objects, 467,635,474 B); archive parquet at prefix
+    `archive/readings_2026-11-11.parquet` (77,720,696 B). Bucket has uniform
+    bucket-level access, public access prevention enforced, and a 90-day delete
+    lifecycle rule.
+  - Restore check: external Parquet tables returned 15,429,835 legacy rows and
+    15,451,487 archive rows; external tables were dropped after verification.
   - Staging: 15,451,487 rows, 3,637,963,985 logical bytes, 0 null required fields,
     0 duplicate keys.
   - Exact INSERT dry-run: **7,976,032,165 B** (`UPPER_BOUND`); legacy scan was
@@ -250,9 +261,41 @@ section. Every entry states the evidence it rests on.
   2026-11-14T02:58:39Z. Re-pull before ~2026-12-09 and weekly until the Airflow DAG
   owns ingestion. `scripts/archive_history.py` is incremental (`since` + 1-day overlap,
   merge by `@id`).
-- **Post-swap:** scheduled dlt history dual-write is append-only; `fct_readings`
-  reprocesses a 3-day lookback and merges on `(measure_id, reading_time)`.
+- **Post-swap:** scheduled dlt history dual-write is append-only. Staging dedups raw
+  with `QUALIFY ROW_NUMBER()` by `(measure, datetime)` ordered by latest
+  `_dlt_load_id`/`_dlt_id`. `fct_readings` uses BigQuery `insert_overwrite` with a
+  3-day lookback (`fct_lookback_days`); widen that var for late/backfilled data.
   `load_readings_history` backfill remains merge-based for idempotent seeding.
 - **Cost:** legacy scan 4,338,068,180 B; staging 3,637,963,985 B; INSERT
   7,976,032,165 B. Load jobs are free; staging storage is ~3.64GB logical until
-  cleanup.
+  cleanup. A measured `fct_readings` run with a 7-day lookback processed
+  ~460 MB for the temp table and ~491 MB for the partition-scoped MERGE; the MERGE
+  included `date(reading_date) in unnest(dbt_partitions_for_replacement)`. A 3-day
+  lookback run without the staging filter processed 6.5 GB + 3.36 GB, which is why
+  staging is now bounded before the window function.
+
+## D-016: Use ADC impersonation, not a downloaded service-account key
+
+- **Status:** configured 2026-11-16.
+- **Decision:** Runtime BigQuery access uses Application Default Credentials (ADC).
+  For impersonation, `GOOGLE_APPLICATION_CREDENTIALS` points at an impersonated ADC
+  JSON file; no service-account key is committed or downloaded.
+- **Setup:**
+  - Grant the operator `roles/iam.serviceAccountTokenCreator` on the runtime SA
+    (`dlt-runner@<GCP_PROJECT_ID>.iam.gserviceaccount.com`).
+  - Enable `iamcredentials.googleapis.com`.
+  - Create an impersonated ADC file with type `impersonated_service_account` and
+    `service_account_impersonation_url` pointing at the runtime SA; copy the existing
+    `authorized_user` fields into `source_credentials`. Keep this file outside the repo.
+  - Set `GOOGLE_APPLICATION_CREDENTIALS` to that file and `GOOGLE_CLOUD_PROJECT` to the
+    project id.
+- **Why:** dlt does not accept an impersonated credentials object through its
+  `credentials=` argument, but it does use impersonated ADC when `credentials` is not
+  passed explicitly. `make_pipeline` therefore passes `project_id` and lets ADC resolve.
+  dbt also uses ADC because `keyfile` was removed from the profile.
+- **Verification:** `gcloud auth print-access-token --impersonate-service-account=...`
+  succeeds; a dlt probe load into a temporary dataset succeeded through the
+  impersonated ADC file; `dbt debug --target dev` connected with `method: oauth`.
+- **Guardrail:** never commit the impersonated ADC file or any refresh token. The
+  standard `%APPDATA%\gcloud\application_default_credentials.json` is also outside the
+  repo.

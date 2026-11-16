@@ -50,8 +50,9 @@ dbt-build-local: ## Run the full dbt build against the local duckdb warehouse
 dbt-test: ## Run dbt tests scoped to recent partitions
 	$(UV) run dbt test --profiles-dir dbt --project-dir dbt
 
-dbt-test-full: ## Run dbt tests over full history (weekly, expensive)
-	$(UV) run dbt test --profiles-dir dbt --project-dir dbt --vars '{test_lookback_days: 100000}'
+dbt-test-full: ## Rebuild and test dbt over full history (weekly, expensive)
+	$(UV) run dbt build --profiles-dir dbt --project-dir dbt \
+		--vars '{fct_lookback_days: 100000, test_lookback_days: 100000}'
 
 elementary-report: ## Generate the Elementary HTML report
 	$(UV) run edr report --profiles-dir dbt --project-dir dbt
