@@ -1,8 +1,6 @@
 packages:
-  - name: dbt_utils
-    package: dbt-labs/dbt_utils
+  - package: dbt-labs/dbt_utils
     version: 1.4.1
-  - name: elementary
-    package: elementary-data/elementary
-    version: 0.16.4
-sha1_hash: 0628848aa72a670bdfcde55854434685963ea698
+  - package: elementary-data/elementary
+    version: 0.17.0
+sha1_hash: d5d8609d43e27f60866e074a3a3d11a0fcea845d

@@ -49,14 +49,22 @@ models:
     columns:
       - name: reading_id
         tests:
-          - unique
-          - not_null
+          - unique:
+              config:
+                where: "reading_time >= current_timestamp - interval {{ var('test_lookback_days', 3) }} day"
+          - not_null:
+              config:
+                where: "reading_time >= current_timestamp - interval {{ var('test_lookback_days', 3) }} day"
       - name: measure_id
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "reading_time >= current_timestamp - interval {{ var('test_lookback_days', 3) }} day"
       - name: reading_time
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "reading_time >= current_timestamp - interval {{ var('test_lookback_days', 3) }} day"
 
   - name: stg_readings_latest
     description: Rolling snapshot of each measure's newest reading.

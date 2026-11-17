@@ -5,6 +5,18 @@
 -#}
 with source as (
     select * from {{ source('raw', 'readings') }}
+    {% if target.type == 'bigquery' %}
+    where datetime >= current_timestamp - interval {{ var('fct_lookback_days', 3) }} day
+    {% endif %}
+),
+
+deduped as (
+    select *
+    from source
+    qualify row_number() over (
+        partition by measure, datetime
+        order by _dlt_load_id desc, _dlt_id desc
+    ) = 1
 )
 
 select
@@ -18,4 +30,4 @@ select
     {{ clean_categorical('qualifier') }} as qualifier,
     _dlt_load_id,
     _dlt_id
-from source
+from deduped

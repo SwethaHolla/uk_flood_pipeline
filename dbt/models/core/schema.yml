@@ -39,13 +39,23 @@ models:
     columns:
       - name: measure_id
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "reading_date >= current_date - interval {{ var('test_lookback_days', 3) }} day"
           - relationships:
               to: ref('dim_measure')
               field: measure_id
+              config:
+                where: "reading_date >= current_date - interval {{ var('test_lookback_days', 3) }} day"
       - name: reading_time
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "reading_date >= current_date - interval {{ var('test_lookback_days', 3) }} day"
+      - name: is_plausible
+        description: >
+          False when a non-null reading is outside generous physical bounds for
+          its unit and measure type. Values are flagged, never deleted.
       - name: reading_value
         description: Null when the API reported NaN (value_missing = true).
         tests:

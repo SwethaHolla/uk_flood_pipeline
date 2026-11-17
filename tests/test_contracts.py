@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
 
 from uk_flood.contracts import (
     FloodWarningContract,
+    LatestReadingContract,
     MeasureContract,
     ReadingContract,
     StationContract,
@@ -76,6 +77,56 @@ class TestReadingQuirks:
     def test_missing_id_is_quarantined(self):
         with pytest.raises(ValidationError):
             ReadingContract.model_validate({"measure": ".../m", "dateTime": "2026-10-20T09:00:00Z"})
+
+    def test_reading_before_2000_is_quarantined(self):
+        with pytest.raises(ValidationError):
+            ReadingContract.model_validate(
+                {
+                    "@id": ".../readings/old",
+                    "measure": ".../measures/x",
+                    "dateTime": "1999-12-31T23:59:59Z",
+                    "value": 1.0,
+                }
+            )
+
+    def test_reading_more_than_one_day_future_is_quarantined(self):
+        future = (datetime.now(UTC) + timedelta(days=2)).isoformat()
+        with pytest.raises(ValidationError):
+            ReadingContract.model_validate(
+                {
+                    "@id": ".../readings/future",
+                    "measure": ".../measures/x",
+                    "dateTime": future,
+                    "value": 1.0,
+                }
+            )
+
+    def test_reading_within_one_day_future_is_accepted(self):
+        future = (datetime.now(UTC) + timedelta(hours=12)).isoformat()
+        r = ReadingContract.model_validate(
+            {
+                "@id": ".../readings/future-ok",
+                "measure": ".../measures/x",
+                "dateTime": future,
+                "value": 1.0,
+            }
+        )
+        assert r.datetime > datetime.now(UTC)
+
+    def test_reading_at_archive_start_is_accepted(self):
+        r = ReadingContract.model_validate(
+            {
+                "@id": ".../readings/2021",
+                "measure": ".../measures/x",
+                "dateTime": "2021-11-01T00:00:00Z",
+                "value": 1.0,
+            }
+        )
+        assert r.datetime.year == 2021
+
+    def test_latest_reading_before_2000_is_quarantined(self):
+        with pytest.raises(ValidationError):
+            LatestReadingContract.model_validate({"dateTime": "1999-12-31T23:59:59Z", "value": 1.0})
 
 
 class TestStationQuirks:
