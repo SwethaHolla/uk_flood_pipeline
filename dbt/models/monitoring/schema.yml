@@ -15,3 +15,30 @@ models:
         description: Distinct (measure, datetime) keys for this date.
       - name: duplicate_extra_rows
         description: raw_rows - distinct_keys.
+
+  - name: freshness
+    description: >-
+      One-row freshness view: latest raw/latest/fct reading timestamps, their
+      lag in minutes, and the last 24h of ShortCircuit gate trips. Gate rows
+      come from uk_flood_ops.gate_events (BigQuery only).
+    columns:
+      - name: readings_latest_max
+        description: Newest reading in the rolling latest snapshot.
+      - name: readings_latest_lag_minutes
+        description: Minutes since the newest latest snapshot reading.
+      - name: readings_max
+        description: Newest reading in append-only raw history.
+      - name: readings_lag_minutes
+        description: Minutes since the newest raw history reading.
+      - name: fct_readings_max
+        description: Newest reading in the core fact table.
+      - name: fct_readings_lag_minutes
+        description: Minutes since the newest fact reading.
+      - name: gate_trips_24h
+        description: ShortCircuit trips in the last 24 hours (BigQuery only).
+      - name: last_gate_trip_at
+        description: Timestamp of the most recent trip (BigQuery only).
+      - name: last_gate_trip_reason
+        description: Reason for the most recent trip (BigQuery only).
+      - name: gate_alerts_24h
+        description: Trips that successfully sent an alert (BigQuery only).

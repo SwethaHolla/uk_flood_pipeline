@@ -251,21 +251,38 @@ section. Every entry states the evidence it rests on.
     7,423,188 archive rows; 0 required nulls; 22,853,023 distinct `_dlt_id`s.
   - Reconciliation: 1,805 days, union daily counts 22,853,023, **0 mismatched days**;
     span 2021-11-01..2026-11-11 22:30 UTC.
+  - Live appends since the swap: **22,858,406 rows** through 2026-11-16T17:10:53Z;
+    the 11-12..11-16 gap is still sparse until the resume/backfill completes.
   - Swap: `readings` -> `readings_legacy`; `readings_new` -> `readings`.
 - **Dedup rule:** legacy rows win the overlap (`source_priority=0`), archive fills
   missing keys and the tail (`source_priority=1`); keep the lexicographically smallest
   `id` within a source. Archive rows get a deterministic synthetic `_dlt_load_id`
   (archive snapshot) and `_dlt_id` (hash of measure/datetime/reading_id); preserve
   dlt's `measure`/`datetime`/`_dlt_load_id`/`_dlt_id` NOT NULL hints.
-- **Freshness:** the archive was last refreshed 2026-11-11; report generated
-  2026-11-14T02:58:39Z. Re-pull before ~2026-12-09 and weekly until the Airflow DAG
-  owns ingestion. `scripts/archive_history.py` is incremental (`since` + 1-day overlap,
-  merge by `@id`).
+- **Freshness:** the local archive was refreshed 2026-11-17 00:08 UTC:
+  **18,410,825 rows**, span 2021-11-01..2026-11-17T00:08:35Z, 5,386 measures,
+  parquet 92,819,255 B, 0 duplicate `(measure, datetime)` groups. It now covers the
+  11-12..11-17 gap and can be used as a fallback source. Re-pull before ~2026-12-15
+  and weekly until the Airflow DAG owns ingestion. `scripts/archive_history.py` is
+  incremental (`since` + 1-day overlap, merge by `@id`).
 - **Post-swap:** scheduled dlt history dual-write is append-only. Staging dedups raw
   with `QUALIFY ROW_NUMBER()` by `(measure, datetime)` ordered by latest
   `_dlt_load_id`/`_dlt_id`. `fct_readings` uses BigQuery `insert_overwrite` with a
   3-day lookback (`fct_lookback_days`); widen that var for late/backfilled data.
   `load_readings_history` backfill remains merge-based for idempotent seeding.
+- **Gap fill (2026-11-17):** the local archive was loaded into `readings` with a
+  free BigQuery load job, not `seed_history`. The boundary was detected from
+  `INFORMATION_SCHEMA.PARTITIONS` counts, not the sparse latest-reading max: the
+  last complete day was 2026-11-10, so the load started at 2026-11-10 22:55 UTC
+  (1-hour overlap) and ended at the archive max 2026-11-17 00:08:35 UTC. The
+  filtered Parquet was 2,960,892 rows / 69,333,461 B; the load job appended all
+  rows. Raw counts after load: 11-10 485,807; 11-11 513,688; 11-12 506,797;
+  11-13 506,646; 11-14 506,487; 11-15 506,154; 11-16 416,425; 11-17 318. The
+  archive itself has only 410,896 rows for 11-16 (83% of the 493,001 median), so
+  raw matches the archive; no day is zero or below 80% of its archive count.
+  Expected raw duplicates from the 1-hour overlap and the old sparse latest rows
+  remain; staging dedups them. A widened 7-day `dbt build --select fct_readings`
+  then reprocessed the gap; all data tests passed (one expected plausibility warn).
 - **Cost:** legacy scan 4,338,068,180 B; staging 3,637,963,985 B; INSERT
   7,976,032,165 B. Load jobs are free; staging storage is ~3.64GB logical until
   cleanup. A measured `fct_readings` run with a 7-day lookback processed
@@ -299,3 +316,72 @@ section. Every entry states the evidence it rests on.
 - **Guardrail:** never commit the impersonated ADC file or any refresh token. The
   standard `%APPDATA%\gcloud\application_default_credentials.json` is also outside the
   repo.
+
+## D-017: Cost-gated Airflow cadence (readings 15 min, reference daily, dbt configurable)
+
+- **Status:** decided and implemented 2026-11-16; budget measurement pending the
+  2026-11-17 quota reset.
+- **Evidence:** one full ingestion cycle (stations, measures, flood_warnings,
+  readings_latest) billed **608,174,080 B (~580 MiB)**. Breakdown by destination:
+  stations 52.4 MB, stations__measures 52.4 MB, measures 41.9 MB, flood_warnings
+  41.9 MB, readings_latest 41.9 MB, and ~262 MB of dlt script overhead. At a
+  15-minute cadence that is ~55.7 GiB/day for full ingestion alone, before dbt.
+- **Quota:** the project hit the **31,457 MiB/day** QueryUsagePerDay quota on
+  2026-11-16 after a measured 9.9 GB dbt run, the 608 MB ingest, and diagnostic
+  queries (32.37 GB billed). The quota resets at midnight America/Los_Angeles
+  (08:00 UTC in November). The SA lacks `bigquery.jobs.listAll`, so the DAG cannot
+  read project-wide `INFORMATION_SCHEMA.JOBS`; cost evidence is collected out of
+  band with `JOBS_BY_USER`.
+- **Decision:** keep the DAG on `*/15 * * * *`, but gate the expensive work:
+  - every 15 minutes: ingest `readings_latest` only (dual-writes `readings`);
+  - daily at 02:00 UTC: ingest `stations`, `measures`, `flood_warnings`;
+  - every `DBT_INTERVAL_HOURS` at minute 0 (default 2; set 4 if the measured
+    budget is exceeded): run `dbt build`, then Elementary.
+- **What the gates read / cost:** `should_ingest_reference` and
+  `should_build_dbt` read only the Airflow `data_interval_end` (fallback
+  `logical_date`). They do **not** query BigQuery, so a gate costs **0 query
+  bytes**. The optional ops row is a BigQuery streaming insert (also free); it
+  does not consume QueryUsagePerDay. This is deliberate: a cost gate that queried
+  `INFORMATION_SCHEMA.JOBS` would itself spend quota and would fail when the
+  project is already over quota.
+- **Trip behaviour:** `evaluate_gate` records every decision in
+  `uk_flood_ops.gate_events` (gate, decision, reason, interval_end, fail_mode,
+  alert_sent). A trip (`decision=false`) also calls the optional webhook in
+  `OPS_ALERT_WEBHOOK_URL`; alerting is **off by default**. The dbt model
+  `uk_flood_monitoring.freshness` exposes `gate_trips_24h`,
+  `last_gate_trip_at`, `last_gate_trip_reason`, `gate_alerts_24h`, alongside
+  latest/latest-history/fct lag minutes. If the ops insert or webhook fails, the
+  failure is logged and the gate decision is unchanged.
+- **Fail-closed vs fail-open:** both gates default to **closed** on an evaluation
+  exception or missing interval: skip the guarded task and record
+  `gate_error_closed:*`. Set `OPS_GATE_FAIL_MODE=open` to run the task instead
+  (recorded as `gate_error_open:*`). Closed is the safer default for the quota;
+  open is appropriate only if freshness matters more than the extra bytes.
+- **Measured widened-lookback rebuild (2026-11-17 01:21 UTC):**
+  `dbt build --select fct_readings --vars '{"fct_lookback_days": 7}'` billed
+  **4,779,409,408 B (~4.45 GiB)** across 44 billed query jobs: fct CTAS 1.20 GB, MERGE
+  1.20 GB, generated script 1.23 GB, Elementary tests ~0.8 GB, dbt metadata
+  ~0.35 GB. This filled the 11-11..11-17 gap; it is a worst-case rebuild, not
+  steady state. A follow-up 3-day run hit the same custom quota error, so the
+  steady-state 3-day number is still pending.
+- **Budget (15 GiB/day rule):**
+  - readings-only ingest: 41.9 MB/run x 96 = **4.02 GB/day** (before dlt overhead);
+  - reference refresh: **0.26 GB/day**;
+  - dbt 2-hourly at 951 MB/run = **11.41 GB/day**;
+  - subtotal **15.69 GB/day (~14.6 GiB)** before dlt overhead; at the measured
+    4.45 GiB gap rebuild, 2-hourly would be **53.4 GiB/day**.
+  - **Conclusion:** 2-hourly is not justified by the gap-rebuild measurement.
+    The steady-state 3-day run must be measured after the quota resets; if it is
+    above ~800 MB/run (or total query bytes exceed 15 GiB/day), set
+    `DBT_INTERVAL_HOURS=4` (6 runs/day) or tighten `fct_lookback_days`. Do not
+    restore full-reference ingestion every 15 minutes without re-measuring.
+- **Gate:** after the quota resets, measure a readings-only ingest and a
+  steady-state 3-day dbt run from `INFORMATION_SCHEMA.JOBS_BY_USER`; record the
+  bytes in this decision. If the total exceeds the 15 GiB/day rule, use
+  `DBT_INTERVAL_HOURS=4` or tighten `fct_lookback_days`.
+- **Implementation:** `dags/uk_flood_pipeline.py` uses `ShortCircuitOperator`
+  gates (`should_ingest_reference`, `should_build_dbt`) wrapped by
+  `uk_flood.ops.evaluate_gate`, and the `--resources` CLI subset; the dbt gate
+  waits for the daily reference load when it runs. `DBT_INTERVAL_HOURS` (default 2)
+  controls the dbt cadence; set it to 4 if the measured daily total exceeds the
+  15 GiB rule.

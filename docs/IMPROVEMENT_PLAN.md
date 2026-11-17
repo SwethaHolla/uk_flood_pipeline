@@ -17,7 +17,7 @@
 ### 1.1 Code / repo
 - `src/uk_flood/` — `contracts.py` (Pydantic), `ea_client.py` (httpx + tenacity retries), `pipelines.py` (dlt, quarantine, run_metadata, dual-write `readings_latest`→`readings`), `settings.py`, `ingest.py` (Typer CLI).
 - `dbt/` — staging (6 models), core (5: `dim_station`, `dim_measure`, `dim_flood_area`, `fct_readings`, `fct_flood_warnings`), marts (4), 4 singular tests, `clean_categorical` macro. Incremental `fct_readings` uses adapter-gated strategy (BigQuery MERGE / DuckDB delete+insert), partition `reading_date` DAY, cluster `measure_id`.
-- `dags/uk_flood_pipeline.py` — single DAG, `*/15 * * * *`, tasks `ingest_raw_data → dbt_build → elementary_monitoring`.
+- `dags/uk_flood_pipeline.py` — single DAG, `*/15 * * * *`, cost-gated tasks: `ingest_readings` (15 min) → `ingest_reference` (daily 02:00 UTC) → `dbt_build` (every 2h) → `elementary_monitoring`.
 - `docker/` — Dockerfile.airflow (Airflow 2.10.4/py3.12) + compose (Postgres, LocalExecutor).
 - `mock_api/` — FastAPI mock with quirk fixtures. `scripts/` — `ingest_local.py`, `seed_history.py`, `chaos.py`, `benchmark.py`.
 - `tests/` — 38 offline tests (client, contracts, idempotency, ingest, quarantine, settings).

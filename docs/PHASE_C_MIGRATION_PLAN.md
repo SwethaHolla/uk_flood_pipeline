@@ -102,9 +102,8 @@ qualify row_number() over (
    - Record per-test and per-model bytes; update the baseline doc.
 
 7. **Only then schedule Airflow**
-   - Start with dbt hourly, not every 15 minutes, unless the measured bytes prove a 15-minute dbt run fits the budget.
-   - Keep ingestion at 15 minutes if needed; dbt cadence is a separate decision.
-   - Re-measure after 24 hours and compare with the 15 GiB/day line.
+   - Measured 2026-11-16: a full ingest cycle bills ~580 MiB, so the chosen cadence is readings every 15 minutes, reference data daily, and dbt every 2 hours (D-017).
+   - Re-measure after 24 hours and compare with the 31,457 MiB/day quota line.
 
 ## Cost model (estimates, to be measured)
 

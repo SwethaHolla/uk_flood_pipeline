@@ -33,3 +33,17 @@ sources:
         description: "Contract failures with raw payload and error reason."
       - name: run_metadata
         description: "One row per resource per ingestion run (observability)."
+
+  - name: ops
+    description: >-
+      Operational gate events written by the Airflow DAG. A ShortCircuit trip
+      appends one row; alerting is optional and off by default.
+    database: "{{ env_var('DBT_OPS_DATABASE', env_var('GCP_PROJECT_ID', '<GCP_PROJECT_ID>')) }}"
+    schema: "{{ env_var('OPS_DATASET', 'uk_flood_ops') }}"
+    tables:
+      - name: gate_events
+        description: "One row per ShortCircuit gate decision."
+        loaded_at_field: event_time
+        freshness:
+          warn_after: {count: 2, period: hour}
+          error_after: {count: 6, period: hour}

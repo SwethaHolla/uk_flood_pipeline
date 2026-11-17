@@ -8,7 +8,7 @@ A resilient, observable batch ELT pipeline that ingests UK Environment Agency (E
 - **Handles messy real-world data** - normalizes inconsistent types (list/numeric values), missing values, dirty categoricals, and timezone inconsistencies per EA API quirks
 - **Loads to BigQuery** via [dlt](https://dlthub.com/) with quarantine for failed records, run metadata tracking, and schema change detection
 - **Transforms with dbt** into a medallion model (staging → core → marts) with incremental processing, partitioning, and clustering
-- **Orchestrates** with [Apache Airflow](https://airflow.apache.org/) on a 15-minute schedule (ingest → dbt → Elementary)
+- **Orchestrates** with [Apache Airflow](https://airflow.apache.org/) on a cost-gated schedule: readings every 15 minutes, reference data daily, and dbt every `DBT_INTERVAL_HOURS` (default 2 hours; ingest → dbt → Elementary)
 - **Monitors quality** with dbt tests, 4 singular data quality tests, and [Elementary](https://www.elementary-data.com/) anomaly detection
 - **Validates resilience** with a chaos harness testing 7 failure scenarios (timeouts, 429s, 500s, malformed data, etc.)
 
@@ -156,7 +156,7 @@ docker compose up -d
 
 # Access UI at http://localhost:8080 (admin/admin)
 # DAG: uk_flood_pipeline (runs every 15 min)
-# Tasks: ingest_raw_data → dbt_build → elementary_monitoring
+# Tasks: ingest_readings → should_ingest_reference (daily) → ingest_reference → should_build_dbt (default 2h) → dbt_build → elementary_monitoring
 ```
 
 ## Project structure
